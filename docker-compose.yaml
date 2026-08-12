@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: DSA_DB
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=coolUser
+      - POSTGRES_PASSWORD=coolUserPassword
+      - POSTGRES_DB=DSA_agent
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: dsa_pgadmin
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=adminPassword
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+volumes:
+  postgres_data:

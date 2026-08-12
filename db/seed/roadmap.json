@@ -1,0 +1,80 @@
+{
+  "name": "DSA",
+  "node_type": "root",
+  "children": [
+    {
+      "name": "Arrays",
+      "node_type": "topic",
+      "sequence_order": 1,
+      "children": [
+        {
+          "name": "Traversal",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Prefix Sum",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Difference Array",
+          "node_type": "pattern",
+          "sequence_order": 3
+        },
+        {
+          "name": "Two Pointer",
+          "node_type": "pattern",
+          "sequence_order": 4
+        },
+        {
+          "name": "Sliding Window",
+          "node_type": "pattern",
+          "sequence_order": 5,
+          "children": [
+            {
+              "name": "Fixed Window",
+              "node_type": "subpattern",
+              "sequence_order": 1
+            },
+            {
+              "name": "Variable Window",
+              "node_type": "subpattern",
+              "sequence_order": 2
+            },
+            {
+              "name": "Frequency Map",
+              "node_type": "subpattern",
+              "sequence_order": 3
+            },
+            {
+              "name": "At Most / Exactly K",
+              "node_type": "subpattern",
+              "sequence_order": 4
+            }
+          ]
+        },
+        {
+          "name": "Binary Search",
+          "node_type": "pattern",
+          "sequence_order": 6
+        },
+        {
+          "name": "Kadane",
+          "node_type": "pattern",
+          "sequence_order": 7
+        },
+        {
+          "name": "Hashing",
+          "node_type": "pattern",
+          "sequence_order": 8
+        },
+        {
+          "name": "Monotonic Stack",
+          "node_type": "pattern",
+          "sequence_order": 9
+        }
+      ]
+    }
+  ]
+}
