@@ -4,13 +4,18 @@ create table users(
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- use hierarchical table
-create table roadmap_topics (
+CREATE TABLE roadmap_topics (
     id BIGSERIAL PRIMARY KEY,
-    parent_id BIGINT REFERENCES roadmap_topics(id) on DELETE CASCADE,
+
+    parent_id BIGINT
+        REFERENCES roadmap_topics(id)
+        ON DELETE CASCADE,
+
     name VARCHAR(150) NOT NULL,
     node_type VARCHAR(30) NOT NULL,
     sequence_order INT NOT NULL,
     description TEXT,
+
     UNIQUE(parent_id, name)
 );
 

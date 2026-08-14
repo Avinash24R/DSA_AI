@@ -15,10 +15,11 @@ recursively continue
 import json
 import os
 from pathlib import Path
-
+from typing import Any, cast
+from psycopg.rows import dict_row
 import psycopg
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 ROADMAP_FILE = BASE_DIR/"db"/"seed"/"roadmap.json"
 
@@ -29,6 +30,7 @@ def get_connection():
         dbname=os.getenv("POSTGRES_DB", "dsa_agent"),
         user=os.getenv("POSTGRES_USER", "dsa_user"),
         password=os.getenv("POSTGRES_PASSWORD", "dsa_password"),
+        row_factory=cast(Any, dict_row), 
     )
 def insert_node(cur , node, parent_id=None):
     cur.execute(
@@ -52,7 +54,13 @@ def insert_node(cur , node, parent_id=None):
                 node.get("sequence_order", 0),
             )
         )
-    topic_id = cur.fetchone()[0]
+    row = cur.fetchone()
+    if row is None:
+        raise RuntimeError(f"Insert returned no row for node {node.get('name')!r}")
+    if hasattr(row, "keys"):
+        topic_id = row["id"]
+    else:
+        topic_id = row[0]
     for child in node.get("children", []):
         insert_node(
             cur,
@@ -62,7 +70,7 @@ def insert_node(cur , node, parent_id=None):
         
 def main():
     print("Loading roadmap....")
-    with open(ROADMAP_FILE, "r", encoding="uft-8") as file:
+    with open(ROADMAP_FILE, "r", encoding="utf-8") as file:
         roadmap = json.load(file)
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -73,5 +81,7 @@ def main():
                 )
         conn.commit()
     print("Roadmap seeded successfully. ")
-
+if __name__ == "__main__":
+    main()
+    
     
