@@ -16,21 +16,24 @@ import json
 import os
 from pathlib import Path
 from typing import Any, cast
+
+from dotenv import load_dotenv
 from psycopg.rows import dict_row
 import psycopg
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 ROADMAP_FILE = BASE_DIR/"db"/"seed"/"roadmap.json"
 
 def get_connection():
     return psycopg.connect(
-        host=os.getenv("POSTGRES_HOST", "postgres"),
-        port=os.getenv("POSTGRES_PORT", "5432"),
-        dbname=os.getenv("POSTGRES_DB", "dsa_agent"),
-        user=os.getenv("POSTGRES_USER", "dsa_user"),
-        password=os.getenv("POSTGRES_PASSWORD", "dsa_password"),
-        row_factory=cast(Any, dict_row), 
+        host=os.getenv("POSTGRES_HOST", "localhost"),
+        port=os.getenv("POSTGRES_PORT", "5433"),
+        dbname=os.getenv("POSTGRES_DB", "DSA_agent"),
+        user=os.getenv("POSTGRES_USER", "coolUser"),
+        password=os.getenv("POSTGRES_PASSWORD", "coolUserPassword"),
+        row_factory=cast(Any, dict_row),
     )
 def insert_node(cur , node, parent_id=None):
     cur.execute(

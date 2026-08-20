@@ -4,3 +4,9 @@ langchain
 langchain_community 
 langchain-groq
 langgraph
+
+psycopg[binary]==3.2.9
+requests
+pytest
+python-dotenv
+pydantic

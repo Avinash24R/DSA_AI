@@ -99,3 +99,40 @@ CREATE TABLE problem_attempts (
     ],
     "feedback": "Your approach was correct but the invariant was not maintained."
 }*/
+
+CREATE TABLE problems (
+    id BIGSERIAL PRIMARY KEY,
+
+    source VARCHAR(30) NOT NULL,
+
+    external_id VARCHAR(150) NOT NULL,
+
+    title VARCHAR(255) NOT NULL,
+
+    difficulty VARCHAR(30),
+
+    url TEXT NOT NULL,
+
+    description TEXT,
+
+    topics JSONB NOT NULL DEFAULT '[]',
+
+    metadata JSONB NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE(source, external_id)
+);
+CREATE TABLE problem_topics (
+    problem_id BIGINT NOT NULL
+        REFERENCES problems(id)
+        ON DELETE CASCADE,
+
+    roadmap_topic_id BIGINT NOT NULL
+        REFERENCES roadmap_topics(id)
+        ON DELETE CASCADE,
+
+    PRIMARY KEY(problem_id, roadmap_topic_id)
+);

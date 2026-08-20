@@ -1,1 +1,6 @@
 /.vene
+/.pytest_cache
+__init__.py
+__pycache__
+.env
+pytest_output.txt

@@ -12,6 +12,7 @@ skill eavluation
 }
 '''
 from typing import TypedDict, Optional, Any
+from pydantic import BaseModel , Field
 
 
 class DSAState(TypedDict, total=False):
@@ -35,7 +36,6 @@ class DSAState(TypedDict, total=False):
     current_problem_id: str
     current_problem: dict[str, Any]
 
-
     # Problem session
     attempt_number: int
     hint_level: int
@@ -44,10 +44,44 @@ class DSAState(TypedDict, total=False):
     user_answer: str
 
     # Evaluatio2
+    judge_result: dict[str, Any]
     evaluation: dict[str, Any]
 
     # Workflow control
     lesson: str |  list[str | dict[Any, Any]]
     next_action: str
 
-    
+class SubmissionEvaluation(BaseModel):
+    problem_title: str
+    problem_source: str
+    difficulty: str
+
+    correct: bool
+
+    code_quality_score: float = Field(ge=0, le=10)
+    approach_score: float = Field(ge=0, le=10)
+    complexity_score: float = Field(ge=0, le=10)
+
+    overall_score: float = Field(ge=0, le=100)
+
+    time_complexity: str
+    space_complexity: str
+
+    identified_pattern: Optional[str] = None
+    expected_pattern: Optional[str] = None
+
+    mistakes: list[str] = []
+    edge_cases_missed: list[str] = []
+
+    feedback: str
+
+class ProblemSelection(BaseModel):
+    problem_id: str
+    reason: str
+class Problem(BaseModel):
+    problem_id: str
+    source: str
+    title: str
+    difficulty: str
+    topics: list[str]
+    url: str

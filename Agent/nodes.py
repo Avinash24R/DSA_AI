@@ -1,4 +1,4 @@
-from state import DSAState
+from .state import DSAState
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -10,19 +10,7 @@ import time
 
 from langchain_groq import ChatGroq
 from langgraph.types import interrupt
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
-
-groq_api_key = os.getenv("GROQ_API")
-if not groq_api_key:
-    raise RuntimeError("Missing GROQ_API in the environment or .env file.")
-
-llm = ChatGroq(
-    model="llama-3.1-8b-instant",
-    temperature=0.1,
-    api_key=groq_api_key, # type: ignore
-)
+from .llm import get_llm
 
 def load_student(state: DSAState) -> DSAState:
     """
@@ -79,10 +67,14 @@ def evaluate_skill(state: DSAState) -> DSAState:
 
     if avg_score < 40:
         level = "beginner"
+        difficulty = "easy"
     elif avg_score < 70:
         level = "intermediate"
+        difficulty = "medium"
+
     else:
         level = "advanced"
+        difficulty = "hard"
 
     weakest_topic = None
 
@@ -98,13 +90,18 @@ def evaluate_skill(state: DSAState) -> DSAState:
         "average_skill_score": avg_score,
         "progress": progress,
         "recent_attempts": recent_attempts,
+        "target_difficulty": difficulty,
     }
 
     return state
 def select_topic(state: DSAState) -> DSAState:
-
     """
     Select the next roadmap topic.
+
+    Priority:
+    1. Weakest topic
+    2. Next topic from student progress
+    3. First roadmap topic for a new student
     """
 
     user_id = state.get("user_id")
@@ -116,16 +113,26 @@ def select_topic(state: DSAState) -> DSAState:
 
     weakest_topic = evaluation.get("weakest_topic")
 
+    # Existing student with a weak topic
     if weakest_topic:
         topic_id = weakest_topic["roadmap_topic_id"]
 
     else:
+        # Try normal roadmap progression
         topic = get_next_topic(user_id)
 
-        if not topic:
-            raise ValueError("No next topic available")
+        if topic:
+            topic_id = topic["id"]
 
-        topic_id = topic["id"]
+        else:
+            # NEW STUDENT
+            # Get the first actual topic under the DSA root.
+            topic = get_first_topic()
+
+            if not topic:
+                raise ValueError("No roadmap topics available")
+
+            topic_id = topic["id"]
 
     topic = get_topic(topic_id)
 
@@ -138,7 +145,7 @@ def select_topic(state: DSAState) -> DSAState:
 
     state["current_topic_id"] = topic["id"]
     state["current_topic"] = topic["name"]
-    state["available_subtopics"] = children # type: ignore
+    state["available_subtopics"] = children
     state["next_action"] = "TEACH_TOPIC"
 
     return state
@@ -173,7 +180,7 @@ Include:
 
 Do not give a practice problem yet.
 """
-    
+    llm = get_llm()
     response = llm.invoke(prompt)
     state["lesson"] = response.content
     state["next_action"] = "SELECT_PROBLEM"
@@ -181,22 +188,27 @@ Do not give a practice problem yet.
     return state
 
 def select_problem_node(state: DSAState) -> DSAState:
-    topic_id = state.get("current_problem_id")
+    topic_id = state.get("current_topic_id")
+    if not topic_id:
+        raise ValueError("Current_topic id is required")
 
     skill = state.get("skill_evaluation", {})
 
     recent_attempts = state.get("recent_attempts", [])
 
-    problem = select_problem(
+    problem_id = select_problem(
         topic_id=topic_id,
+        topic_name = state.get("current_topic", "hashmap"),
         skill=skill,
-        recent_attempts=recent_attempts,
+        recent_attempts=recent_attempts
     )
 
-    if not problem:
+    if not problem_id:
         raise ValueError("No suitable problem found")
-
-    state["current_problem_id"] = problem["problem_id"]
+    problem = get_problem(problem_id)
+    if not problem:
+        raise ValueError(f"Problem {problem_id} not found")
+    state["current_problem_id"] = problem_id
     state["current_problem"] = problem
     state["attempt_number"] = 1
     state["hint_level"] = 0
@@ -206,30 +218,50 @@ def select_problem_node(state: DSAState) -> DSAState:
     return state
 def present_problem(state: DSAState) -> DSAState:
 
-    problem = state.get("current_problem")
+    if not state.get("current_problem"):
+        raise ValueError("No Current Problem")
 
-    state.get("thinking_start_time") = time.time() # type: ignore
+    state["thinking_start_time"] = time.time() # type: ignore
 
     state["next_action"] = "AWAIT_SUBMISSION"
 
     return state
-def wait_for_user(state: DSAState)-> DSAState:
+def wait_for_user(state: DSAState) -> DSAState:
+
     answer = interrupt({
         "type": "code_submission",
         "problem_id": state.get("current_problem_id"),
         "message": "Submit your c++ solution"
     })
 
+    start_time = state.get("thinking_start_time")
+
+    if start_time is not None:
+        state["thinking_time_seconds"] = int(
+            time.time() - start_time
+        )
+
     state["user_answer"] = answer
+
+    # Temporary fake judge result.
+    state["judge_result"] = {
+        "status": "Accepted",
+        "accepted": True,
+        "runtime_ms": 10,
+        "memory_kb": 4096,
+        "tests_passed": 10,
+        "tests_total": 10,
+    }
+
     state["next_action"] = "EVALUATE"
 
     return state
-
 def evaluate_answer(state: DSAState) -> DSAState:
 
     evaluation = evaluate_submission(
         problem=state.get("current_problem"),
         answer=state.get("user_answer"),
+        judge_result=state.get("judge_result"),
         thinking_time=state.get("thinking_time_seconds", 0),
     )
 
@@ -275,6 +307,7 @@ def update_progress_node(state: DSAState) -> DSAState:
         user_id=state.get("user_id"),
         roadmap_topic_id=state.get("current_topic_id"),
         evaluation=state.get("evaluation"),
+        thinking_time_seconds=state.get("thinking_time_seconds")
     )
 
     state["next_action"] = "END"
