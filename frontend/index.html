@@ -1,293 +1,551 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DSA AI Tutor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <title>AI DSA Mentor</title>
 
-  <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+        rel="stylesheet"
+    >
+
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-<div class="app-shell">
 
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-icon"><i class="bi bi-code-slash"></i></div>
-      <div>
-        <div class="brand-title">DSA <span>AI Tutor</span></div>
-        <small>Personalized practice</small>
-      </div>
-    </div>
+<div class="app">
 
-    <nav class="side-nav">
-      <a class="active" href="#dashboard"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-      <a href="#roadmap"><i class="bi bi-signpost-split"></i> Roadmap</a>
-      <a href="#problems"><i class="bi bi-code-square"></i> Problems</a>
-      <a href="#submissions"><i class="bi bi-file-earmark-code"></i> Submissions</a>
-      <a href="#progress"><i class="bi bi-bar-chart-line"></i> Progress</a>
-      <a href="#weak"><i class="bi bi-bullseye"></i> Weak Areas</a>
-      <a href="#mentor"><i class="bi bi-robot"></i> AI Mentor</a>
-    </nav>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
 
-    <div class="sidebar-bottom">
-      <div class="goal-card">
-        <div class="small-label">Today's goal</div>
-        <strong id="goalText">2 / 5 problems</strong>
-        <div class="progress mt-2">
-          <div id="goalProgress" class="progress-bar" style="width:40%"></div>
-        </div>
-        <small><i class="bi bi-lightning-charge-fill"></i> +50 XP available</small>
-      </div>
-
-      <div class="user-mini">
-        <div class="avatar">A</div>
-        <div>
-          <strong id="userName">Student</strong>
-          <small id="userLevel">Beginner</small>
-        </div>
-        <button class="icon-btn ms-auto" title="Settings"><i class="bi bi-gear"></i></button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Main -->
-  <main class="main-content">
-
-    <!-- Top bar -->
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">CURRENT LEARNING PATH</div>
-        <div class="breadcrumb-line">
-          <span id="topicName">Arrays</span>
-          <i class="bi bi-chevron-right"></i>
-          <span id="subtopicName">Sliding Window</span>
-        </div>
-      </div>
-
-      <div class="top-stats">
-        <div class="top-stat">
-          <i class="bi bi-fire"></i>
-          <div><strong id="streak">7</strong><small>day streak</small></div>
-        </div>
-        <div class="top-stat">
-          <i class="bi bi-stars"></i>
-          <div><strong id="xp">1280</strong><small>XP earned</small></div>
-        </div>
-        <div class="top-stat">
-          <i class="bi bi-bullseye"></i>
-          <div><strong id="accuracy">72%</strong><small>accuracy</small></div>
-        </div>
-        <div class="avatar top-avatar">A</div>
-      </div>
-    </header>
-
-    <section id="dashboard" class="page-section">
-
-      <!-- Welcome -->
-      <div class="welcome-card">
-        <div>
-          <div class="eyebrow">AI DSA TUTOR</div>
-          <h1>Welcome back, <span id="welcomeName">Student</span>.</h1>
-          <p>Your agent has selected the next step based on your progress.</p>
-        </div>
-        <div class="welcome-icon"><i class="bi bi-robot"></i></div>
-      </div>
-
-      <div class="row g-3 mt-1">
-
-        <!-- Current task -->
-        <div class="col-xl-8">
-          <div class="card-panel current-task">
-            <div class="panel-heading">
-              <div>
-                <div class="eyebrow">YOUR NEXT TASK</div>
-                <h2 id="taskTitle">Maximum Sum Subarray of Size K</h2>
-              </div>
-              <span id="difficultyBadge" class="badge difficulty-easy">Easy</span>
+        <div class="brand">
+            <div class="brand-icon">
+                <i class="bi bi-code-slash"></i>
             </div>
 
-            <div class="task-meta">
-              <span><i class="bi bi-tag"></i> <span id="taskTopic">Sliding Window</span></span>
-              <span><i class="bi bi-clock"></i> <span id="estimatedTime">20 min</span></span>
-              <span><i class="bi bi-arrow-repeat"></i> <span id="attemptText">First attempt</span></span>
-            </div>
-
-            <div class="external-problem">
-              <div class="problem-icon"><i class="bi bi-box-arrow-up-right"></i></div>
-              <div class="flex-grow-1">
-                <strong>Solve the problem on the selected platform</strong>
-                <p class="mb-0">The question is intentionally not shown here. Open the problem, solve it, then return and submit your solution.</p>
-              </div>
-              <a id="problemUrl" href="#" target="_blank" rel="noopener" class="btn btn-outline-light">
-                Open Problem <i class="bi bi-arrow-up-right ms-1"></i>
-              </a>
-            </div>
-
-            <div class="notepad">
-              <div class="notepad-head">
-                <span><i class="bi bi-journal-text"></i> Solution Notepad</span>
-                <span class="text-muted small">Write/paste your final C++ solution here</span>
-              </div>
-              <textarea id="solutionCode" class="code-input" spellcheck="false"
-                placeholder="// Paste your C++ solution here..."></textarea>
-
-              <div class="submit-row">
-                <select id="language" class="form-select form-select-sm language-select">
-                  <option value="cpp">C++</option>
-                </select>
-                <button id="saveDraftBtn" class="btn btn-dark-soft">
-                  <i class="bi bi-save2"></i> Save Draft
-                </button>
-                <button id="submitBtn" class="btn btn-primary px-4">
-                  <i class="bi bi-send"></i> Submit Solution
-                </button>
-              </div>
-            </div>
-
-            <div id="submissionStatus" class="status-box d-none"></div>
-          </div>
+            <span>
+                DSA <strong>AI Mentor</strong>
+            </span>
         </div>
 
-        <!-- Skill summary -->
-        <div class="col-xl-4">
-          <div class="card-panel h-100">
-            <div class="panel-heading">
-              <div>
-                <div class="eyebrow">SKILL OVERVIEW</div>
-                <h2>Current Progress</h2>
-              </div>
-              <span class="level-pill" id="levelPill">Beginner</span>
+        <nav class="nav flex-column mt-4">
+
+            <a class="nav-link active" href="#">
+                <i class="bi bi-house"></i>
+                Dashboard
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-map"></i>
+                Roadmap
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-code-square"></i>
+                Problems
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-file-code"></i>
+                Submissions
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-bar-chart"></i>
+                Progress
+            </a>
+
+            <a class="nav-link" href="#">
+                <i class="bi bi-robot"></i>
+                AI Mentor
+            </a>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="goal-card">
+
+                <small>Today's Goal</small>
+
+                <div class="goal-number">
+                    <span id="goalSolved">0</span> / 5 problems
+                </div>
+
+                <div class="progress mt-3">
+                    <div
+                        id="goalProgress"
+                        class="progress-bar"
+                        style="width:0%"
+                    ></div>
+                </div>
+
             </div>
 
-            <div class="score-wrap">
-              <div class="score-circle">
-                <strong id="skillScore">42</strong>
-                <span>/100</span>
-              </div>
-              <div>
-                <div class="metric"><span>Problems solved</span><strong id="solved">23</strong></div>
-                <div class="metric"><span>Total attempts</span><strong id="attempts">45</strong></div>
-                <div class="metric"><span>Accuracy</span><strong id="metricAccuracy">72%</strong></div>
-              </div>
-            </div>
-
-            <div class="skill-bars">
-              <div class="skill-row"><span>Arrays</span><div class="progress"><div style="width:68%"></div></div><b>68</b></div>
-              <div class="skill-row"><span>Hashing</span><div class="progress"><div style="width:52%"></div></div><b>52</b></div>
-              <div class="skill-row"><span>Two Pointers</span><div class="progress"><div style="width:38%"></div></div><b>38</b></div>
-              <div class="skill-row"><span>Graphs</span><div class="progress"><div style="width:24%"></div></div><b>24</b></div>
-            </div>
-
-            <button class="btn btn-outline-light w-100 mt-3" onclick="showToast('Detailed progress coming next.')">
-              View Progress
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Agent status + roadmap -->
-      <div class="row g-3 mt-1">
-        <div class="col-lg-7">
-          <div class="card-panel">
-            <div class="panel-heading">
-              <div>
-                <div class="eyebrow">AGENT STATUS</div>
-                <h2>What your tutor is doing</h2>
-              </div>
-              <span class="live-pill"><span></span> Active</span>
-            </div>
-
-            <div class="agent-flow">
-              <div class="flow-step done"><span>1</span><div><strong>Load profile</strong><small>Progress loaded from PostgreSQL</small></div></div>
-              <div class="flow-line"></div>
-              <div class="flow-step done"><span>2</span><div><strong>Evaluate skill</strong><small>Weak areas and difficulty calculated</small></div></div>
-              <div class="flow-line"></div>
-              <div class="flow-step active"><span>3</span><div><strong>Practice problem</strong><small>Waiting for your submission</small></div></div>
-              <div class="flow-line"></div>
-              <div class="flow-step"><span>4</span><div><strong>Evaluate solution</strong><small>Judge + AI evaluation</small></div></div>
-              <div class="flow-line"></div>
-              <div class="flow-step"><span>5</span><div><strong>Update progress</strong><small>Next topic will be selected</small></div></div>
-            </div>
-          </div>
         </div>
 
-        <div class="col-lg-5">
-          <div class="card-panel">
-            <div class="panel-heading">
-              <div>
-                <div class="eyebrow">ROADMAP</div>
-                <h2>Next topics</h2>
-              </div>
-              <button class="link-btn" onclick="showToast('Roadmap page coming next.')">View all</button>
+    </aside>
+
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <div>
+
+                <div class="small text-secondary">
+                    Current Topic
+                </div>
+
+                <div class="topic-path">
+                    <span id="topicName">DSA</span>
+
+                    <i class="bi bi-chevron-right"></i>
+
+                    <span id="subtopicName">
+                        Practice
+                    </span>
+                </div>
+
             </div>
 
-            <div class="roadmap-item active-topic">
-              <div class="topic-dot"></div>
-              <div class="flex-grow-1"><strong>Sliding Window</strong><small>Current topic</small></div>
-              <span>1/3</span>
+
+            <div class="user-info">
+
+                <div class="stat">
+                    🔥
+                    <span id="streak">0</span>
+                    <small>Day Streak</small>
+                </div>
+
+                <div class="stat">
+                    ⭐
+                    <span id="xp">0</span>
+                    <small>XP</small>
+                </div>
+
+                <div class="stat">
+                    🎯
+                    <span id="accuracy">0%</span>
+                    <small>Accuracy</small>
+                </div>
+
+                <div class="user-avatar">
+                    A
+                </div>
+
+                <div>
+                    <strong id="userName">Student</strong>
+                    <small id="userLevel">Beginner</small>
+                </div>
+
             </div>
-            <div class="roadmap-item">
-              <div class="topic-dot"></div>
-              <div class="flex-grow-1"><strong>Two Pointers</strong><small>Needs practice</small></div>
-              <span>1/3</span>
+
+        </header>
+
+
+        <!-- CONTENT -->
+
+        <div class="container-fluid content">
+
+            <!-- WELCOME -->
+
+            <div class="welcome-card">
+
+                <div>
+
+                    <h2>
+                        Welcome back,
+                        <span id="welcomeName">Student</span>!
+                    </h2>
+
+                    <p>
+                        Continue your DSA journey and solve today's problem.
+                    </p>
+
+                </div>
+
+                <i class="bi bi-code-square welcome-icon"></i>
+
             </div>
-            <div class="roadmap-item">
-              <div class="topic-dot"></div>
-              <div class="flex-grow-1"><strong>Binary Search</strong><small>Not started</small></div>
-              <span>0/3</span>
+
+
+            <div class="row g-3 mt-1">
+
+                <!-- LEFT -->
+
+                <div class="col-lg-8">
+
+                    <!-- CURRENT PROBLEM -->
+
+                    <div class="card-box">
+
+                        <div class="d-flex justify-content-between">
+
+                            <div>
+
+                                <span
+                                    id="difficultyBadge"
+                                    class="difficulty easy"
+                                >
+                                    Easy
+                                </span>
+
+                                <span
+                                    id="taskTopic"
+                                    class="topic-badge"
+                                >
+                                    DSA
+                                </span>
+
+                            </div>
+
+                            <span
+                                id="attemptText"
+                                class="text-secondary"
+                            >
+                                First attempt
+                            </span>
+
+                        </div>
+
+
+                        <h2
+                            id="taskTitle"
+                            class="problem-title mt-3"
+                        >
+                            Loading problem...
+                        </h2>
+
+
+                        <div class="problem-meta">
+
+                            <span>
+                                <i class="bi bi-clock"></i>
+
+                                <span id="estimatedTime">
+                                    20 min
+                                </span>
+                            </span>
+
+                            <span>
+                                <i class="bi bi-code-square"></i>
+                                C++
+                            </span>
+
+                        </div>
+
+
+                        <a
+                            id="problemUrl"
+                            href="#"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn btn-outline-primary mt-3"
+                        >
+                            <i class="bi bi-box-arrow-up-right"></i>
+
+                            Open Problem
+                        </a>
+
+                    </div>
+
+
+                    <!-- CODE EDITOR -->
+
+                    <div class="card-box mt-3">
+
+                        <div class="editor-header">
+
+                            <div>
+
+                                <strong>
+                                    Your Solution
+                                </strong>
+
+                                <span class="text-secondary ms-2">
+                                    Write your solution here
+                                </span>
+
+                            </div>
+
+
+                            <select
+                                id="language"
+                                class="form-select form-select-sm language-select"
+                            >
+                                <option value="cpp">
+                                    C++
+                                </option>
+                            </select>
+
+                        </div>
+
+
+                        <textarea
+                            id="solutionCode"
+                            class="code-editor"
+                            spellcheck="false"
+                            placeholder="// Write your C++ solution here..."
+                        ></textarea>
+
+
+                        <div class="editor-footer">
+
+                            <button
+                                id="saveDraftBtn"
+                                class="btn btn-outline-secondary"
+                            >
+                                <i class="bi bi-save"></i>
+
+                                Save Draft
+                            </button>
+
+
+                            <button
+                                id="submitBtn"
+                                class="btn btn-primary"
+                            >
+                                <i class="bi bi-send"></i>
+
+                                Submit Solution
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            id="submissionStatus"
+                            class="status-box d-none"
+                        ></div>
+
+                    </div>
+
+
+                    <!-- JUDGE RESULT -->
+
+                    <div
+                        id="judgeCard"
+                        class="card-box mt-3 d-none"
+                    >
+
+                        <div class="d-flex justify-content-between">
+
+                            <h5>
+                                Judge Result
+                            </h5>
+
+                            <span
+                                id="judgeStatus"
+                                class="judge-status"
+                            >
+                            </span>
+
+                        </div>
+
+
+                        <div class="row mt-3">
+
+                            <div class="col-md-4">
+
+                                <div class="result-item">
+
+                                    <small>Runtime</small>
+
+                                    <strong id="runtime">
+                                        -
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="result-item">
+
+                                    <small>Memory</small>
+
+                                    <strong id="memory">
+                                        -
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="result-item">
+
+                                    <small>Tests</small>
+
+                                    <strong id="tests">
+                                        -
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- RIGHT -->
+
+                <div class="col-lg-4">
+
+                    <!-- SKILL -->
+
+                    <div class="card-box">
+
+                        <h5>
+                            Skill Overview
+                        </h5>
+
+                        <div class="skill-score">
+
+                            <div class="score-circle">
+
+                                <span id="skillScore">
+                                    0
+                                </span>
+
+                                <small>/100</small>
+
+                            </div>
+
+                            <div>
+
+                                <div class="text-secondary">
+                                    Current Level
+                                </div>
+
+                                <strong id="levelPill">
+                                    Beginner
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="stats-grid mt-4">
+
+                            <div>
+                                <small>Solved</small>
+                                <strong id="solved">0</strong>
+                            </div>
+
+                            <div>
+                                <small>Attempts</small>
+                                <strong id="attempts">0</strong>
+                            </div>
+
+                            <div>
+                                <small>Accuracy</small>
+                                <strong id="metricAccuracy">0%</strong>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- AI MENTOR -->
+
+                    <div class="card-box mt-3 ai-card">
+
+                        <div class="ai-icon">
+                            <i class="bi bi-robot"></i>
+                        </div>
+
+                        <h5>
+                            AI Mentor
+                        </h5>
+
+                        <p>
+                            Your agent is selecting problems based on your
+                            current DSA skill and progress.
+                        </p>
+
+                        <button
+                            class="btn btn-outline-primary w-100"
+                        >
+                            Ask AI Mentor
+                        </button>
+
+                    </div>
+
+
+                    <!-- STATUS -->
+
+                    <div class="card-box mt-3">
+
+                        <h5>
+                            Agent Status
+                        </h5>
+
+                        <div class="agent-status">
+
+                            <span class="status-dot"></span>
+
+                            <span id="agentStatus">
+                                Ready for submission
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
-            <div class="roadmap-item">
-              <div class="topic-dot"></div>
-              <div class="flex-grow-1"><strong>Hashing</strong><small>In progress</small></div>
-              <span>2/4</span>
-            </div>
-          </div>
+
         </div>
-      </div>
 
-      <!-- Recent submissions -->
-      <div class="card-panel mt-3">
-        <div class="panel-heading">
-          <div>
-            <div class="eyebrow">HISTORY</div>
-            <h2>Recent submissions</h2>
-          </div>
-          <button class="link-btn" onclick="showToast('Submission history coming next.')">View all</button>
-        </div>
+    </main>
 
-        <div class="table-responsive">
-          <table class="table app-table align-middle mb-0">
-            <thead>
-              <tr><th>Problem</th><th>Status</th><th>Score</th><th>Time</th><th>Date</th></tr>
-            </thead>
-            <tbody id="submissionTable">
-              <tr><td>Two Sum</td><td><span class="status accepted">Accepted</span></td><td>100</td><td>8 ms</td><td>1 day ago</td></tr>
-              <tr><td>Maximum Subarray</td><td><span class="status wrong">Wrong Answer</span></td><td>40</td><td>N/A</td><td>2 days ago</td></tr>
-              <tr><td>Longest Substring Without Repeating Characters</td><td><span class="status accepted">Accepted</span></td><td>85</td><td>12 ms</td><td>3 days ago</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </section>
-  </main>
 </div>
 
-<!-- Toast -->
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-  <div id="appToast" class="toast" role="alert">
-    <div class="toast-body"></div>
-  </div>
+
+<!-- TOAST -->
+
+<div
+    id="appToast"
+    class="toast position-fixed bottom-0 end-0 m-4"
+    role="alert"
+>
+
+    <div class="toast-body">
+        Ready
+    </div>
+
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+></script>
+
 <script src="app.js"></script>
+
 </body>
 </html>

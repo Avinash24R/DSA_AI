@@ -1,89 +1,42 @@
-/*
-  Frontend contract with the LangGraph/FastAPI backend.
-
-  Expected endpoints:
-
-  GET  /api/agent/session/current
-       -> {
-            user: {name, level, streak, xp, accuracy},
-            task: {
-              problem_id, title, topic, subtopic, difficulty,
-              url, estimated_minutes, attempt_number
-            },
-            skill: {score, solved, attempts, accuracy, topics: [...]}
-          }
-
-  POST /api/agent/session/{problem_id}/submit
-       body:
-       {
-         "language": "cpp",
-         "code": "..."
-       }
-
-       -> {
-            "status": "queued" | "accepted" | "wrong_answer" | "error",
-            "judge_result": {...},
-            "next_action": "EVALUATE" | "END" | ...
-          }
-
-  IMPORTANT:
-  The browser cannot automatically obtain a LeetCode/Codeforces judge_result
-  just because the user opened an external URL. Your backend must either:
-    1. run the submitted code through your own judge, or
-    2. integrate with a judge/submission service and normalize its result.
-*/
-
 const API_BASE = "/api";
-
-const demoState = {
-  user: {
-    name: "Arjun",
-    level: "Beginner",
-    streak: 7,
-    xp: 1280,
-    accuracy: 72
-  },
-  task: {
-    problem_id: "local:test-1-easy",
-    title: "Maximum Sum Subarray of Size K",
-    topic: "Sliding Window",
-    subtopic: "Fixed Window",
-    difficulty: "Easy",
-    url: "https://leetcode.com/problems/maximum-sum-subarray-of-size-k/",
-    estimated_minutes: 20,
-    attempt_number: 1
-  },
-  skill: {
-    score: 42,
-    solved: 23,
-    attempts: 45,
-    accuracy: 72
-  }
-};
-
-let session = demoState;
+let session = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   restoreDraft();
   bindEvents();
-
-  // Set true when the FastAPI endpoint is ready.
-  const USE_BACKEND = true;
-
-  if (USE_BACKEND) {
-    await loadSession();
-  } else {
-    renderSession(session);
-  }
+  await loadSession();
 });
 
-function bindEvents() {
-  document.getElementById("problemUrl").addEventListener("click", () => {
-    const url = document.getElementById("problemUrl").href;
-    if (!url || url === "#") {
-      showStatus("No problem URL is available.", false);
+async function ensureSession() {
+  // Try stored thread_id first
+  const stored = localStorage.getItem("dsa_thread_id");
+  if (stored) return stored;
+
+  // Try to create/start a session on the backend (non-blocking fallback to demo)
+  try {
+    const res = await fetch(`${API_BASE}/agent/session/start?user_id=1`, {
+      method: "POST",
+    });
+
+    if (res.ok) {
+      const body = await res.json();
+      const threadId = body.thread_id || body.get?.("thread_id") || body["thread_id"];
+      if (threadId) {
+        localStorage.setItem("dsa_thread_id", threadId);
+        return threadId;
+      }
     }
-  });
+  } catch (e) {
+    // ignore and fallback to demo
+    console.warn("Could not start session on backend, falling back to demo", e);
+  }
+
+  // final fallback
+  localStorage.setItem("dsa_thread_id", "guest");
+  return "guest";
+}
+
+function bindEvents() {
 
   document.getElementById("saveDraftBtn").addEventListener("click", saveDraft);
   document.getElementById("submitBtn").addEventListener("click", submitSolution);
@@ -95,9 +48,16 @@ function bindEvents() {
 
 async function loadSession() {
   try {
-    const response = await fetch(`${API_BASE}/agent/session/current`, {
-      credentials: "include"
-    });
+    setAgentStatus("Loading agent session...");
+    const threadId = await ensureSession();
+
+    // Prefer the thread-specific endpoint
+    let response = await fetch(`${API_BASE}/agent/session/${encodeURIComponent(threadId)}/current`);
+
+    // If not found or backend can't provide, fall back to demo endpoint
+    if (!response.ok) {
+      response = await fetch(`${API_BASE}/agent/session/current`);
+    }
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -105,9 +65,11 @@ async function loadSession() {
 
     session = await response.json();
     renderSession(session);
+    setAgentStatus("Ready for submissioin")
   } catch (error) {
-    console.warn("Backend session unavailable. Showing UI demo data.", error);
-    renderSession(demoState);
+    console.error("Backend session unavailable. Showing UI demo data.", error);
+    setAgentStatus("backend unavailable")
+    showToast("Could not load agent session")
   }
 }
 
@@ -139,15 +101,17 @@ function renderSession(data) {
   badge.className = `badge difficulty-${difficulty.toLowerCase()}`;
 
   const url = task.url || "#";
-  document.getElementById("problemUrl").href = url;
+  const problemLink = document.getElementById("problemUrl").href = url;
+  problemLink.href = url;
 
   setText("skillScore", skill.score ?? 0);
   setText("solved", skill.solved ?? 0);
   setText("attempts", skill.attempts ?? 0);
 
-  const goalSolved = Math.min(skill.solved ?? 0, 5);
-  document.getElementById("goalProgress").style.width = `${goalSolved * 20}%`;
-  setText("goalText", `${goalSolved} / 5 problems`);
+  const solved = skill.solved ?? 0;
+  const goal = Math.min(solved, 5);
+  document.getElementById("goalProgress").style.width = `${goal * 20}%`;
+  setText("goalText", goal);
 }
 
 function getAttemptText(number) {
@@ -158,25 +122,30 @@ function getAttemptText(number) {
 async function submitSolution() {
   const code = document.getElementById("solutionCode").value.trim();
   const language = document.getElementById("language").value;
-  const problemId = session?.task?.problem_id;
+  const threadId = session?.thread_id || session?.task?.thread_id || "guest";
+
+  const problemId = session?.task?.problem_id || session?.task?.current_problem_id || null;
 
   if (!code) {
-    showStatus("Paste your solution into the notepad before submitting.", false);
+    showToast("Write your solution first.");
     return;
   }
 
   if (!problemId) {
-    showStatus("No active problem is available.", false);
+    showToast("No active problem.");
     return;
   }
+
 
   const button = document.getElementById("submitBtn");
   button.disabled = true;
   button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Judging...';
-
+  setAgentStatus(
+        "Submitting solution..."
+  );
   try {
     const response = await fetch(
-      `${API_BASE}/agent/session/${encodeURIComponent(problemId)}/submit`,
+      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/submit`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -195,22 +164,13 @@ async function submitSolution() {
 
     const result = await response.json();
 
-    /*
-      This is where your backend should have already updated / resumed
-      the LangGraph state with judge_result.
-
-      Example:
-        judge_result = result.judge_result
-        next_action = result.next_action
-    */
-
     handleSubmissionResult(result);
   } catch (error) {
     console.error(error);
-    showStatus(
-      "Submission could not be sent. Check that the FastAPI submit endpoint is running.",
-      false
-    );
+    showToast(error.message)
+    setAgentStatus(
+            "Submission failed"
+        );
   } finally {
     button.disabled = false;
     button.innerHTML = '<i class="bi bi-send"></i> Submit Solution';
@@ -218,30 +178,86 @@ async function submitSolution() {
 }
 
 function handleSubmissionResult(result) {
+  console.log(
+        "Agent result:",
+        result
+  );
   const status = String(result.status || "").toLowerCase();
+  const judge = result.judge_result || {};
+  const judgeCard = document.getElementById("judgeCard");
+  judgeCard.classList.remove(
+        "d-none"
+    );
+  const statusElement = document.getElementById("judgeStatus");
+  statusElement.textContent = formatStatus(status);
+  setText(
+        "runtime",
+        judge.runtime_ms != null
+            ? `${judge.runtime_ms} ms`
+            : "-"
+    );
+  setText(
+        "memory",
+        judge.memory_kb != null
+            ? `${judge.memory_kb} KB`
+            : "-"
+    );
+  if (judge.tests_passed != null && judge.tests_total != null) {
+        setText(
+            "tests",
+            `${judge.tests_passed}/${judge.tests_total}`
+          );
+    } else {
+      setText("tests","-");
+    }
 
   if (status === "accepted") {
-    showStatus(
-      "Accepted. The judge result has been recorded and the agent can continue to evaluation.",
-      true
+    setAgentStatus(
+      "Accepted. Agent evaluating solution..."
     );
+      showToast(
+         "Solution accepted."
+      );
+  
   } else if (status === "wrong_answer") {
-    showStatus(
-      "The judge returned Wrong Answer. The agent can now route the session to hint/retry.",
-      false
+    setAgentStatus(
+        "Wrong answer. Agent can provide a hint."
     );
+    showToast(
+        "Wrong answer."
+    );
+    
   } else {
-    showStatus(
-      `Judge result received: ${result.status || "processing"}.`,
-      false
+    setAgentStatus(
+      "Judge returned an error."
     );
+    
   }
+}
+
+function formatStatus(status) {
+    switch (status) {
+      case "accepted":
+          return "Accepted";
+      case "wrong_answer":
+          return "Wrong Answer";
+      case "error":
+          return "Error";
+      case "queued":
+          return "Queued";
+      default:
+          return status || "Unknown";
+    }
+
 }
 
 function saveDraft() {
   const code = document.getElementById("solutionCode").value;
   localStorage.setItem("dsa_solution_draft", code);
-  showStatus("Draft saved locally in this browser.", true);
+  showToast(
+        "Draft saved."
+  );
+
 }
 
 function restoreDraft() {
@@ -250,21 +266,38 @@ function restoreDraft() {
     document.getElementById("solutionCode").value = draft;
   }
 }
-
-function showStatus(message, success) {
-  const box = document.getElementById("submissionStatus");
-  box.textContent = message;
-  box.className = `status-box ${success ? "success" : "error"}`;
-  box.classList.remove("d-none");
+function setText(id,value) {
+    const element =
+        document.getElementById(id);
+    if (element) {
+        element.textContent =
+            value;
+    }
+}
+function getAttemptText(number) {
+    if (!number || number === 1) {
+        return "First attempt";
+    }
+    return `Attempt ${number}`;
+}
+function setAgentStatus(message) {
+    setText(
+        "agentStatus",
+        message
+    );
 }
 
 function showToast(message) {
-  const toast = document.getElementById("appToast");
-  toast.querySelector(".toast-body").textContent = message;
-  bootstrap.Toast.getOrCreateInstance(toast).show();
+    const toast =
+        document.getElementById(
+            "appToast"
+        );
+    toast.querySelector(
+        ".toast-body"
+    ).textContent = message;
+    bootstrap
+        .Toast
+        .getOrCreateInstance(toast)
+        .show();
 }
 
-function setText(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value;
-}

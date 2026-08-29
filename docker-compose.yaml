@@ -4,16 +4,20 @@ services:
     container_name: DSA_DB
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=coolUser
-      - POSTGRES_PASSWORD=coolUserPassword
-      - POSTGRES_DB=DSA_agent
+      POSTGRES_USER: coolUser
+      POSTGRES_PASSWORD: coolUserPassword
+      POSTGRES_DB: DSA_agent
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U coolUser -d DSA_agent"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U coolUser -d DSA_agent"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -22,8 +26,8 @@ services:
     container_name: dsa_pgadmin
     restart: unless-stopped
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@example.com
-      - PGADMIN_DEFAULT_PASSWORD=adminPassword
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: adminPassword
     ports:
       - "5050:80"
     depends_on:
@@ -32,25 +36,55 @@ services:
   roadmap-seeder:
     image: python:3.13-slim
     container_name: dsa_roadmap_seeder
-
     working_dir: /app
-
     volumes:
       - ./scripts:/app/scripts
       - ./db:/app/db
       - ./requirements.txt:/app/requirements.txt
     environment:
-      - POSTGRES_DB=DSA_agent
-      - POSTGRES_USER=coolUser
-      - POSTGRES_PASSWORD=coolUserPassword
-      - POSTGRES_PORT=5432
-      - POSTGRES_HOST=postgres
+      POSTGRES_DB: DSA_agent
+      POSTGRES_USER: coolUser
+      POSTGRES_PASSWORD: coolUserPassword
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: postgres
     depends_on:
       postgres:
         condition: service_healthy
     command: >
       sh -c "
-      pip install --no-cache-dir -r requirements.txt && python scripts/setup.py
+      pip install --no-cache-dir -r requirements.txt &&
+      python scripts/setup.py
       "
+  frontend:
+    build:
+      context: ./frontend
+    container_name: dsa_frontend
+    restart: unless-stopped
+    ports:
+      - "5500:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dsa_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: DSA_agent
+      POSTGRES_USER: coolUser
+      POSTGRES_PASSWORD: coolUserPassword
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
 volumes:
   postgres_data:

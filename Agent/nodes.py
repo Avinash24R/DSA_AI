@@ -241,17 +241,9 @@ def wait_for_user(state: DSAState) -> DSAState:
             time.time() - start_time
         )
 
-    state["user_answer"] = answer
+    state["user_answer"] = answer["code"]
 
-    # Temporary fake judge result.
-    state["judge_result"] = {
-        "status": "Accepted",
-        "accepted": True,
-        "runtime_ms": 10,
-        "memory_kb": 4096,
-        "tests_passed": 10,
-        "tests_total": 10,
-    }
+    state["judge_result"] = answer["judge_result"]
 
     state["next_action"] = "EVALUATE"
 

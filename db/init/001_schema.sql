@@ -136,3 +136,14 @@ CREATE TABLE problem_topics (
 
     PRIMARY KEY(problem_id, roadmap_topic_id)
 );
+CREATE TABLE problem_test_cases (
+    id SERIAL PRIMARY KEY,
+    problem_id INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+    input TEXT NOT NULL,
+    expected_output TEXT NOT NULL,
+    is_sample BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_problem_test_cases_problem_id
+ON problem_test_cases(problem_id);

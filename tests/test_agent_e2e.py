@@ -1,4 +1,5 @@
 from typing import Any, cast
+from langchain_core.runnables import RunnableConfig
 from Agent.graph import build_graph
 from Agent.state import DSAState
 from scripts.setup import get_connection
@@ -126,11 +127,11 @@ def test_complete_agent_session():
 
     graph = build_graph()
 
-    config = {
+    config = cast(RunnableConfig, {
         "configurable": {
             "thread_id": f"e2e-test-{user_id}"
         }
-    }
+    })
 
     # Explicitly type the state as DSAState.
     initial_state: DSAState = {
@@ -140,7 +141,7 @@ def test_complete_agent_session():
 
     result = graph.invoke(
         initial_state,
-        config=config, # type: ignore
+        config=config,
     )
 
     print("\n========== GRAPH PAUSED ==========")
@@ -172,7 +173,7 @@ def test_complete_agent_session():
 
     result = graph.invoke(
         Command(resume=fake_answer),
-        config=config, # type: ignore
+        config=config,
     )
 
     print("\n========== FINAL STATE ==========")

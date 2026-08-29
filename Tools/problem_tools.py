@@ -216,3 +216,25 @@ def select_problem(topic_id:int, topic_name:str, skill:dict[str, Any], recent_at
         )
 
     return selection.problem_id
+def get_test_cases(problem_id: int):
+    query = """
+        SELECT
+            input,
+            expected_output
+        FROM problem_test_cases
+        WHERE problem_id = %s
+        ORDER BY id;
+    """
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+
+            cur.execute(
+                query,
+                (problem_id,)
+            )
+
+            return [
+                dict(row)
+                for row in cur.fetchall()
+            ]

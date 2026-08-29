@@ -10,3 +10,7 @@ requests
 pytest
 python-dotenv
 pydantic
+fastapi
+uvicorn
+httpx
+pydantic
