@@ -4,10 +4,10 @@ from pathlib import Path
 import subprocess
 import tempfile
 import os
-
-from Agent.graph import build_graph
+from scripts.setup import get_connection
+from Agent.graph import graph
 from langchain_core.runnables import RunnableConfig
-from typing import cast
+from typing import Any, Mapping, cast
 from langgraph.types import Command
 
 router = APIRouter(prefix="/api", tags=["submission"])
@@ -111,19 +111,56 @@ def run_cpp_judge(code: str, test_cases: list[dict]) -> dict:
         }
 
 
+def normalize_test_case_row(row: Mapping[str, Any] | tuple[Any, ...]) -> dict[str, str]:
+    if isinstance(row, dict):
+        row_dict = cast(dict[str, Any], row)
+    elif hasattr(row, "keys"):
+        row_dict = cast(dict[str, Any], dict(row))
+    else:
+        row_values = cast(tuple[Any, ...], row)
+        row_dict = {
+            "input": row_values[0],
+            "output": row_values[1] if len(row_values) > 1 else "",
+        }
+
+    input_value = row_dict.get("input")
+    output_value = row_dict.get("expected_output")
+    if output_value is None:
+        output_value = row_dict.get("output")
+
+    if input_value is None or output_value is None:
+        raise KeyError("Test case row missing input or output value")
+
+    return {
+        "input": str(input_value),
+        "output": str(output_value),
+    }
 def get_test_cases(problem: dict) -> list[dict]:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT input, expected_output
+                FROM problem_test_cases
+                WHERE problem_id = %s
+                ORDER BY id
+                """,
+                (problem["id"],),
+            )
+
+            rows = cur.fetchall()
+
     return [
         {
-            "input": "5\n1 2 3 4 5\n",
-            "output": "15",
-        },
-        {
-            "input": "3\n10 20 30\n",
-            "output": "60",
-        },
+            "input": str(row["input"] if isinstance(row, dict) else row[0]), # type: ignore
+            "output": str(
+                row["expected_output"] # type: ignore
+                if isinstance(row, dict)
+                else row[1]
+            ),
+        }
+        for row in rows
     ]
-
-
 @router.post("/agent/session/{thread_id}/submit")
 def submit_code(
     thread_id: str,
@@ -135,15 +172,12 @@ def submit_code(
             detail="Currently only C++ is supported",
         )
 
-    graph = build_graph()
-
     config = cast(RunnableConfig, {
         "configurable": {
             "thread_id": thread_id
         }
     })
 
-    # Get the current LangGraph state
     state = graph.get_state(config)
 
     if not state or not state.values:
@@ -154,33 +188,43 @@ def submit_code(
 
     current_state = state.values
 
+    
     problem = current_state.get("current_problem")
-
     if not problem:
         raise HTTPException(
             status_code=400,
             detail="No active problem in session",
         )
+    print("CURRENT PROBLEM:", problem)
 
     test_cases = get_test_cases(problem)
-
+    if not test_cases:
+        raise HTTPException(
+            status_code=500,
+            detail=f"No test cases found for problem_id={problem.get('id')}",
+        )
+    print("TEST CASES:", test_cases)
     judge_result = run_cpp_judge(
         submission.code,
         test_cases,
     )
-
-    # Resume LangGraph after interrupt()
+    print("JUDGE RESULT:", judge_result)
+    # Resume LangGraph
     result = graph.invoke(
-        Command(resume={
-            "user_answer": submission.code,
-            "judge_result": judge_result,
-        }),
+        Command(
+            resume={
+                "user_answer": submission.code,
+                "judge_result": judge_result,
+            }
+        ),
         config=config,
     )
+    print("GRAPH RESULT:", result)
 
     return {
         "status": judge_result["status"],
         "judge_result": judge_result,
+        "state": result,
         "next_action": result.get(
             "next_action",
             "EVALUATE",

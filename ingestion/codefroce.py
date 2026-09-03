@@ -1,7 +1,5 @@
 import requests
-
 from .models import Problem
-
 
 BASE_URL = "https://codeforces.com/api/problemset.problems"
 
@@ -23,10 +21,7 @@ def normalize_topic(tag: str) -> str:
     )
 
 
-def fetch_codeforces_problems(
-    limit: int | None = None,
-) -> list[Problem]:
-
+def fetch_codeforces_problems(limit: int | None = None) -> list[Problem]:
     response = requests.get(
         BASE_URL,
         params={"lang": "en"},
@@ -42,13 +37,11 @@ def fetch_codeforces_problems(
             f"Codeforces API error: {data.get('comment')}"
         )
 
-    problems = []
+    problems:list[Problem] = []
 
     for item in data["result"]["problems"]:
-
         if item.get("type") != "PROGRAMMING":
             continue
-
         contest_id = item.get("contestId")
         index = item.get("index")
         rating = item.get("rating")
@@ -82,7 +75,7 @@ def fetch_codeforces_problems(
 
         problems.append(problem)
 
-        if limit and len(problems) >= limit:
+        if limit is not None and len(problems) >= limit:
             break
 
     return problems

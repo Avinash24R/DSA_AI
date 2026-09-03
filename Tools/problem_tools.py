@@ -109,45 +109,7 @@ def select_problem(topic_id:int, topic_name:str, skill:dict[str, Any], recent_at
         limit=limit,
     )
     if not candidates:
-        # If running under tests, create a small synthetic problem so E2E
-        # flows can proceed without requiring external ingestion.
-        import sys
-        if "pytest" in sys.modules:
-            with get_connection() as conn:
-                with conn.cursor() as cur:
-                    # Insert a simple local problem
-                    cur.execute(
-                        """
-                        INSERT INTO problems (source, external_id, title, difficulty, url, topics)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                        RETURNING id;
-                        """,
-                        (
-                            "local",
-                            f"test-{topic_id}-{difficulty}",
-                            "E2E Test Problem",
-                            difficulty,
-                            "",
-                            "[]",
-                        ),
-                    )
-                    row = cur.fetchone()
-                    if row:
-                        problem_db_id = row["id"] if hasattr(row, "keys") else row[0] # type: ignore
-                        cur.execute(
-                            "INSERT INTO problem_topics (problem_id, roadmap_topic_id) VALUES (%s, %s) ON CONFLICT DO NOTHING;",
-                            (problem_db_id, topic_id),
-                        )
-                conn.commit()
-
-            candidates = find_problems(
-                topic_id=topic_id,
-                topic_name=topic_name,
-                difficulty=difficulty,
-                limit=limit,
-            )
-        else:
-            raise ValueError("No candidate problems found")
+        raise ValueError("No candidate problems found")
     attempted_ids = {
         attempt["problem_id"]
         for attempt in recent_attempts

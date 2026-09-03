@@ -1,7 +1,6 @@
 import re
 from scripts.setup import get_connection
 TAG_ALIASES = {
-
     # Arrays
     "array": "Arrays",
 
@@ -82,5 +81,22 @@ def map_provider_tag(
         return None
 
     alias_normalized = normalize_topic(alias)
-
     return roadmap_topics.get(alias_normalized)
+def map_problem_topics(
+    provider_topics: list[str],
+    roadmap_topics: dict[str, int],
+) -> list[int]:
+
+    topic_ids: set[int] = set()
+
+    for provider_topic in provider_topics:
+
+        topic_id = map_provider_tag(
+            provider_topic,
+            roadmap_topics,
+        )
+
+        if topic_id is not None:
+            topic_ids.add(topic_id)
+
+    return list(topic_ids)

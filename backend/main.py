@@ -6,7 +6,7 @@ from backend.api.dashborad import router as dashboard_router
 from backend.api.roadmap import router as roadmap_router
 from backend.api.submission import router as submission_router
 from backend.api.progress import router as progress_router
-
+from backend.api.user import router as user_router
 app = FastAPI(
     title="AI DSA Tutor API",
     version= "1.0.0"
@@ -24,21 +24,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(
-    agent_router,
-)
-app.include_router(
-    dashboard_router
-)
-app.include_router(
-    roadmap_router
-)
-app.include_router(
-    submission_router
-)
-app.include_router(
-    progress_router
-)
+app.include_router(agent_router)
+app.include_router(dashboard_router)
+app.include_router(roadmap_router)
+app.include_router(submission_router)
+app.include_router(progress_router)
+app.include_router(user_router)
 @app.get("/health")
 def health():
     return {

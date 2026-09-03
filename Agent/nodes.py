@@ -6,6 +6,7 @@ from Tools.student_tools import *
 from Tools.problem_tools import *
 from Tools.roadmap_tools import *
 from Tools.Eval_tools import *
+from backend.services.problem_service import prepare_problem_pool
 import time
 
 from langchain_groq import ChatGroq
@@ -186,7 +187,22 @@ Do not give a practice problem yet.
     state["next_action"] = "SELECT_PROBLEM"
 
     return state
-
+def prepare_problem_node(state:DSAState) -> DSAState:
+    topic = get_topic("topic")
+    if not topic:
+        raise ValueError("No topic selected")
+    topic_id = topic["id"]
+    topic_name = topic["name"]
+    skill = state.get("skill_evaluation") or {}
+    difficulty = skill.get("target_difficulty" , "easy")
+    count = prepare_problem_pool(
+        topic_id=topic_id,
+        topic_name=topic_name,
+        difficulty=difficulty,
+    )
+    state["problem_pool_ready"]= True
+    state["problem_pool_count"] = count
+    return state
 def select_problem_node(state: DSAState) -> DSAState:
     topic_id = state.get("current_topic_id")
     if not topic_id:
@@ -231,7 +247,8 @@ def wait_for_user(state: DSAState) -> DSAState:
     answer = interrupt({
         "type": "code_submission",
         "problem_id": state.get("current_problem_id"),
-        "message": "Submit your c++ solution"
+        "problem": state.get("current_problem"),
+        "message": ("Solve the problem on Codeforces and check your submission.")
     })
 
     start_time = state.get("thinking_start_time")
@@ -240,13 +257,9 @@ def wait_for_user(state: DSAState) -> DSAState:
         state["thinking_time_seconds"] = int(
             time.time() - start_time
         )
-
-    state["user_answer"] = answer["code"]
-
-    state["judge_result"] = answer["judge_result"]
-
+    state["user_answer"] = answer.get("user_answer", "")
+    state["judge_result"] = answer.get("judge_result" , {})
     state["next_action"] = "EVALUATE"
-
     return state
 def evaluate_answer(state: DSAState) -> DSAState:
 

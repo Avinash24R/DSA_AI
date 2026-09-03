@@ -1,303 +1,1045 @@
 const API_BASE = "/api";
+
 let session = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  restoreDraft();
   bindEvents();
-  await loadSession();
-});
 
-async function ensureSession() {
-  // Try stored thread_id first
-  const stored = localStorage.getItem("dsa_thread_id");
-  if (stored) return stored;
+  const userId = localStorage.getItem("dsa_user_id");
+  const threadId = localStorage.getItem("dsa_thread_id");
 
-  // Try to create/start a session on the backend (non-blocking fallback to demo)
-  try {
-    const res = await fetch(`${API_BASE}/agent/session/start?user_id=1`, {
-      method: "POST",
-    });
-
-    if (res.ok) {
-      const body = await res.json();
-      const threadId = body.thread_id || body.get?.("thread_id") || body["thread_id"];
-      if (threadId) {
-        localStorage.setItem("dsa_thread_id", threadId);
-        return threadId;
-      }
+  const onboarding = document.getElementById("onboarding");
+  if (onboarding) {
+    if (userId && threadId) {
+      hideOnboarding();
+      await loadSession();
+    } else {
+      showOnboarding();
     }
-  } catch (e) {
-    // ignore and fallback to demo
-    console.warn("Could not start session on backend, falling back to demo", e);
   }
 
-  // final fallback
-  localStorage.setItem("dsa_thread_id", "guest");
-  return "guest";
-}
+  if (document.body.innerText.includes("Your Progress")) {
+    await loadProgress();
+  }
+
+  if (document.body.innerText.includes("Profile")) {
+    await loadProfile();
+  }
+
+  if (document.body.innerText.includes("Problems")) {
+    await loadProblemPage();
+  }
+});
 
 function bindEvents() {
+  const startButton = document.getElementById("startLearningBtn");
+  if (startButton) startButton.addEventListener("click", createUserAndSession);
 
-  document.getElementById("saveDraftBtn").addEventListener("click", saveDraft);
-  document.getElementById("submitBtn").addEventListener("click", submitSolution);
+  const continueButton = document.getElementById("continueProblemBtn");
+  if (continueButton) continueButton.addEventListener("click", showProblem);
 
-  document.getElementById("solutionCode").addEventListener("input", () => {
-    localStorage.setItem("dsa_solution_draft", document.getElementById("solutionCode").value);
-  });
+  const saveDraftButton = document.getElementById("saveDraftBtn");
+  if (saveDraftButton) saveDraftButton.addEventListener("click", saveDraft);
+
+  const checkSubmissionButton =
+    document.getElementById(
+        "checkSubmissionBtn"
+    );
+
+  if (checkSubmissionButton) {
+      checkSubmissionButton.addEventListener("click",checkCodeforcesSubmission);
+  }
+  const code = document.getElementById("solutionCode");
+  if (code) {
+    restoreDraft();
+    code.addEventListener("input", () => {
+      localStorage.setItem(getDraftKey(), code.value);
+    });
+  }
+}
+
+function showOnboarding() {
+  const onboarding = document.getElementById("onboarding");
+  const application = document.getElementById("application");
+  if (onboarding) onboarding.classList.remove("d-none");
+  if (application) application.classList.add("d-none");
+}
+
+function hideOnboarding() {
+  const onboarding = document.getElementById("onboarding");
+  const application = document.getElementById("application");
+  if (onboarding) onboarding.classList.add("d-none");
+  if (application) application.classList.remove("d-none");
+}
+
+async function createUserAndSession() {
+  const name = document.getElementById("onboardingName")?.value.trim();
+  const email = document.getElementById("onboardingEmail")?.value.trim();
+  const level = document.getElementById("onboardingLevel")?.value;
+  const codefrocesHandle = document.getElementById("onboardingCodeforces")?.value.trim();
+  if (!name) {
+    showToast("Please enter your name.");
+    return;
+  }
+
+  if (!email) {
+    showToast("Please enter your email.");
+
+    return;
+  }
+  if (!codeforcesHandle) {
+      showToast("Please enter your Codeforces handle.");
+      return;
+  }
+
+  const button = document.getElementById("startLearningBtn");
+  button.disabled = true;
+  button.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Starting AI Agent...`;
+
+  try {
+
+    const userResponse = await fetch(`${API_BASE}/users`, {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        name: name,
+        email: email,
+        level: level,
+        codeforces_handle: codefrocesHandle,
+      }),
+    });
+
+    const user = await readResponse(userResponse);
+
+    if (!user.user_id) {
+      throw new Error("Backend did not return user_id");
+    }
+
+    localStorage.setItem("dsa_user_id", String(user.user_id));
+
+    /*
+     * 2. Start agent
+     */
+
+    const sessionResponse = await fetch(`${API_BASE}/agent/session/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: user.user_id }),
+    });
+    const sessionData = await readResponse(sessionResponse);
+
+    if (!sessionData.thread_id) {
+      throw new Error("Agent did not return thread_id");
+    }
+
+    localStorage.setItem("dsa_thread_id", sessionData.thread_id);
+    hideOnboarding();
+
+    /*
+     * 3. Load actual agent state
+     */
+
+    await loadSession();
+  } catch (error) {
+    console.error("START AGENT ERROR:", error);
+
+    showToast(error.message);
+  } finally {
+    button.disabled = false;
+
+    button.innerHTML = `<i class="bi bi-play-fill"></i>
+             Start Learning`;
+  }
 }
 
 async function loadSession() {
+  const threadId = localStorage.getItem("dsa_thread_id");
+
+  if (!threadId) {
+    showOnboarding();
+    return;
+  }
+  setAgentStatus("Loading AI session...");
+
   try {
-    setAgentStatus("Loading agent session...");
-    const threadId = await ensureSession();
+    const response = await fetch(
+      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/current`,
+    );
+    session = await readResponse(response);
 
-    // Prefer the thread-specific endpoint
-    let response = await fetch(`${API_BASE}/agent/session/${encodeURIComponent(threadId)}/current`);
+    console.log("CURRENT AGENT SESSION:", session);
 
-    // If not found or backend can't provide, fall back to demo endpoint
-    if (!response.ok) {
-      response = await fetch(`${API_BASE}/agent/session/current`);
-    }
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    session = await response.json();
     renderSession(session);
-    setAgentStatus("Ready for submissioin")
+
+
+    const summary = getTopicSummary(session);
+
+    if (summary) {
+      renderTopicSummary(summary);
+      await saveTopicSummary(session, summary);
+    }
+
+
+    if (isProblemReady(session)) markProblemReady();
+    else setAgentStatus("Agent is preparing your lesson...");
   } catch (error) {
-    console.error("Backend session unavailable. Showing UI demo data.", error);
-    setAgentStatus("backend unavailable")
-    showToast("Could not load agent session")
+    console.error("SESSION ERROR:", error);
+
+    setAgentStatus("Agent session unavailable");
+
+    showToast(error.message);
   }
 }
 
 function renderSession(data) {
-  const user = data.user || {};
-  const task = data.task || {};
-  const skill = data.skill || {};
+  const user = data?.user || {};
 
-  setText("userName", user.name || "Student");
-  setText("welcomeName", user.name || "Student");
-  setText("userLevel", user.level || "Beginner");
-  setText("levelPill", user.level || "Beginner");
+  const task = data?.task || {};
 
-  setText("streak", user.streak ?? 0);
+  const skill = data?.skill || {};
+
+  const topic = data?.topic || {};
+
+  const userName = user.name || "Student";
+
+  const level = user.level || "Beginner";
+
+  const topicName = topic.name || task.topic || data.topic_name || "DSA";
+  setText("userName", userName);
+  setText("welcomeName", userName);
+  setText("userLevel", level);
+  setText("topicName", topicName);
+  setText("subtopicName", task.subtopic || "Learning");
   setText("xp", user.xp ?? 0);
-  setText("accuracy", `${user.accuracy ?? 0}%`);
-  setText("metricAccuracy", `${skill.accuracy ?? user.accuracy ?? 0}%`);
+  setText("accuracy", `${user.accuracy ?? skill.accuracy ?? 0}%`);
+  setText("profileCodeforces",user.codeforces_handle || "-");
+  const avatar = document.getElementById("avatarLetter");
 
-  setText("topicName", task.topic || "DSA");
-  setText("subtopicName", task.subtopic || "Practice");
-  setText("taskTitle", task.title || "Next DSA Problem");
+  if (avatar) {
+    avatar.textContent = userName.charAt(0).toUpperCase();
+  }
+
+  const cfHandle =
+    user.codeforces_handle;
+
+  const cfElement =
+      document.getElementById(
+          "profileCodeforces"
+      );
+  if (cfElement && cfHandle) {
+      cfElement.innerHTML = `
+          <a
+              href="https://codeforces.com/profile/${encodeURIComponent(cfHandle)}"
+              target="_blank"
+              rel="noopener noreferrer"
+          >
+              ${escapeHtml(cfHandle)}
+          </a>
+      `;
+  }
+
+  renderProblem(task);
+
+  /*
+   * Profile page
+   */
+
+  setText("profileName", userName);
+
+  setText("profileEmail", user.email || "student@example.com");
+
+  setText("profileLevel", level);
+
+  setText("profileXp", user.xp ?? 0);
+
+  setText("profileAccuracy", `${user.accuracy ?? skill.accuracy ?? 0}%`);
+
+  setText("profileStreak", user.streak ?? 0);
+
+  const profileAvatar = document.getElementById("profileAvatar");
+
+  if (profileAvatar) {
+    profileAvatar.textContent = userName.charAt(0).toUpperCase();
+  }
+}
+
+
+function getTopicSummary(data) {
+
+
+  return (
+    data?.topic_summary ||
+    data?.summary ||
+    data?.topic?.summary ||
+    data?.current_topic_summary ||
+    data?.lesson_summary ||
+    null
+  );
+}
+
+function renderTopicSummary(summary) {
+  const card = document.getElementById("summaryCard");
+
+  const summaryElement = document.getElementById("topicSummary");
+
+  if (!summaryElement) {
+    return;
+  }
+
+  if (typeof summary === "object") {
+    summaryElement.textContent = JSON.stringify(summary, null, 2);
+  } else {
+    summaryElement.textContent = summary;
+  }
+
+  if (card) {
+    card.classList.remove("d-none");
+  }
+
+  const step = document.getElementById("agentStepSummary");
+
+  if (step) {
+    step.classList.add("active");
+  }
+
+  setText("summarySaved", "AI summary generated");
+}
+
+async function saveTopicSummary(data, summary) {
+  const userId = localStorage.getItem("dsa_user_id");
+
+  if (!userId || !summary) {
+    return;
+  }
+
+  /*
+   * This endpoint must be added
+   * to the backend:
+   *
+   * POST /api/topic-summary
+   */
+
+  try {
+    const topic = data?.topic || {};
+
+    const task = data?.task || {};
+
+    const topicName = topic.name || task.topic || data.topic_name || "DSA";
+
+    const topicId = topic.id || data.roadmap_topic_id || null;
+
+    const response = await fetch(`${API_BASE}/topic-summary`, {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        user_id: Number(userId),
+
+        roadmap_topic_id: topicId,
+
+        topic_name: topicName,
+
+        summary:
+          typeof summary === "string" ? summary : JSON.stringify(summary),
+      }),
+    });
+
+    /*
+     * If endpoint hasn't been added yet,
+     * don't break the learning UI.
+     */
+
+    if (response.status === 404) {
+      setText("summarySaved", "Summary ready");
+
+      return;
+    }
+
+    await readResponse(response);
+
+    setText("summarySaved", "Saved to your learning history");
+  } catch (error) {
+    console.error("SUMMARY SAVE ERROR:", error);
+
+    setText("summarySaved", "Summary generated");
+  }
+}
+async function checkCodeforcesSubmission(){
+  const thread_id= localStorage.getItem("dsa_thread_id")
+  if (!thread_id){
+    showToast("No active agent session")
+    return
+  }
+  const button = document.getElementById("checkSubmissionBtn");
+  if (button){
+    button.disabled = true;
+    button.innerHTML = `
+      <span class="spinner-border spinner-border-sm">
+      </span>
+      Checking...
+    `;
+  }
+  try {
+    const response = await fetch(
+      `${API_BASE}/agent/session/`+
+      `${encodeURIComponent(threadId)}`+
+      `/check-submission`,
+      {
+        method: "POST",
+        headers: {
+            "Content-Type":
+                "application/json"
+        }
+      }
+    )
+
+    res = await readResponse(response);
+    console.log("CODEFORCES CHECK:", res);
+    renderCodeforcesResult(res);
+    if(res.judge_result?.accepted){
+      showToast("Accepted AI is evaluating your solution")
+      setTimeout(loadSession, 1000);
+    }else if (res.judge_result?.found){
+      showToast(`Submission found : ${res.judge_result.verdict}`);
+    }else{
+      showToast("No submission found yet");
+    }
+
+  }catch(error){
+    console.error(
+        "CODEFORCES CHECK ERROR:",
+        error
+    );
+    showToast(
+        error.message ||
+        "Could not check Codeforces submission."
+    );
+  }finally{
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = `
+          <i class="bi bi-arrow-repeat"></i>
+          Check Submission
+      `;
+    }
+  }
+}
+function renderCodeforcesResult(result) {
+    const judge =
+        result?.judge_result || {};
+    const card =
+        document.getElementById(
+            "judgeCard"
+        );
+    if (card) {
+        card.classList.remove(
+            "d-none"
+        );
+    }
+    setText(
+        "judgeStatus",
+        judge.found
+            ? (
+                judge.verdict ||
+                "UNKNOWN"
+              )
+            : "NOT SUBMITTED"
+    );
+    setText(
+        "runtime",
+        "-"
+    );
+    setText(
+        "memory",
+        "-"
+    );
+    setText(
+        "tests",
+        "-"
+    );
+    const errorElement =
+        document.getElementById(
+            "judgeError"
+        );
+    if (errorElement) {
+        if (!judge.found) {
+            errorElement.textContent =
+                "No submission found for this problem yet.";
+            errorElement.classList.remove(
+                "d-none"
+            );
+        } else {
+            errorElement.textContent =
+                `Codeforces verdict: ${
+                    judge.verdict
+                }`;
+
+            errorElement.classList.remove(
+                "d-none"
+            );
+        }
+    }
+}
+function isProblemReady(data) {
+  const task = data?.task || {};
+
+  return Boolean(task.title || task.problem_id || task.current_problem_id);
+}
+
+function renderProblem(task) {
+  if (!task) {
+    return;
+  }
+
+  setText("taskTitle", task.title || "Problem");
+
   setText("taskTopic", task.subtopic || task.topic || "DSA");
-  setText("estimatedTime", `${task.estimated_minutes ?? 20} min`);
+
+  setText(
+    "estimatedTime",
+    task.estimated_minutes ? `${task.estimated_minutes} min` : "-",
+  );
+
   setText("attemptText", getAttemptText(task.attempt_number));
 
   const difficulty = task.difficulty || "Easy";
+
   const badge = document.getElementById("difficultyBadge");
-  badge.textContent = difficulty;
-  badge.className = `badge difficulty-${difficulty.toLowerCase()}`;
 
-  const url = task.url || "#";
-  const problemLink = document.getElementById("problemUrl").href = url;
-  problemLink.href = url;
+  if (badge) {
+    badge.textContent = difficulty;
 
-  setText("skillScore", skill.score ?? 0);
-  setText("solved", skill.solved ?? 0);
-  setText("attempts", skill.attempts ?? 0);
+    badge.className = `difficulty ${difficulty.toLowerCase()}`;
+  }
 
-  const solved = skill.solved ?? 0;
-  const goal = Math.min(solved, 5);
-  document.getElementById("goalProgress").style.width = `${goal * 20}%`;
-  setText("goalText", goal);
+  const description = document.getElementById("problemDescription");
+
+  if (description) {
+    description.textContent =
+      task.description || "Open the problem to see the full statement.";
+  }
+
+  const url = document.getElementById("problemUrl");
+
+  if (url) {
+    if (task.url) {
+      url.href = task.url;
+
+      url.classList.remove("disabled");
+    } else {
+      url.href = "#";
+
+      url.classList.add("disabled");
+    }
+  }
+
+  const problemSummary = document.getElementById("problemSummary");
+
+  if (problemSummary) {
+    const summary = getTopicSummary(session);
+
+    problemSummary.textContent = summary || "No topic summary available.";
+  }
 }
 
-function getAttemptText(number) {
-  if (!number || number === 1) return "First attempt";
-  return `Attempt ${number}`;
+function showProblem() {
+  const problemCard = document.getElementById("problemCard");
+
+  const editorCard = document.getElementById("editorCard");
+
+  if (problemCard) {
+    problemCard.classList.remove("d-none");
+  }
+
+  if (editorCard) {
+    editorCard.classList.remove("d-none");
+  }
+
+  const step = document.getElementById("agentStepProblem");
+
+  if (step) {
+    step.classList.add("active");
+  }
+
+  setAgentStatus("Ready to solve");
+
+  document.getElementById("problemCard")?.scrollIntoView({
+    behavior: "smooth",
+  });
 }
+
+function markProblemReady() {
+  setAgentStatus("Topic ready");
+
+  const button = document.getElementById("continueProblemBtn");
+
+  if (button) {
+    button.disabled = false;
+  }
+}
+
+/* =========================================================
+   SUBMISSION
+========================================================= */
 
 async function submitSolution() {
-  const code = document.getElementById("solutionCode").value.trim();
-  const language = document.getElementById("language").value;
-  const threadId = session?.thread_id || session?.task?.thread_id || "guest";
+  const threadId = localStorage.getItem("dsa_thread_id");
 
-  const problemId = session?.task?.problem_id || session?.task?.current_problem_id || null;
+  if (!threadId) {
+    showToast("No active agent session.");
+
+    return;
+  }
+
+  const code = document.getElementById("solutionCode")?.value.trim();
+
+  const language = document.getElementById("language")?.value || "cpp";
 
   if (!code) {
     showToast("Write your solution first.");
+
     return;
   }
-
-  if (!problemId) {
-    showToast("No active problem.");
-    return;
-  }
-
 
   const button = document.getElementById("submitBtn");
+
   button.disabled = true;
-  button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Judging...';
-  setAgentStatus(
-        "Submitting solution..."
-  );
+
+  button.innerHTML = `<span class="spinner-border spinner-border-sm"></span>
+         Judging...`;
+
   try {
+    /*
+     * IMPORTANT:
+     *
+     * This matches the real backend:
+     *
+     * POST
+     * /api/agent/session/{thread_id}/submit
+     */
+
     const response = await fetch(
-      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/submit`,
+      `${API_BASE}/agent/session/` + `${encodeURIComponent(threadId)}/submit`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
         body: JSON.stringify({
           language,
-          code
-        })
-      }
+          code,
+        }),
+      },
     );
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(body || `HTTP ${response.status}`);
+    const result = await readResponse(response);
+
+    console.log("SUBMISSION:", result);
+
+    renderJudgeResult(result);
+
+    /*
+     * Refresh agent state after
+     * accepted submission.
+     */
+
+    if (result.status === "accepted") {
+      showToast("Accepted. Agent is evaluating your progress.");
+
+      setTimeout(loadSession, 1000);
     }
-
-    const result = await response.json();
-
-    handleSubmissionResult(result);
   } catch (error) {
-    console.error(error);
-    showToast(error.message)
-    setAgentStatus(
-            "Submission failed"
-        );
+    console.error("SUBMISSION ERROR:", error);
+
+    showToast(error.message);
   } finally {
     button.disabled = false;
-    button.innerHTML = '<i class="bi bi-send"></i> Submit Solution';
+
+    button.innerHTML = `<i class="bi bi-send"></i>
+             Submit Solution`;
   }
 }
 
-function handleSubmissionResult(result) {
-  console.log(
-        "Agent result:",
-        result
+/* =========================================================
+   JUDGE RESULT
+========================================================= */
+
+function renderJudgeResult(result) {
+  const judge = result?.judge_result || result?.judge || {};
+
+  const card = document.getElementById("judgeCard");
+
+  if (card) {
+    card.classList.remove("d-none");
+  }
+
+  setText("judgeStatus", formatStatus(result.status || judge.status));
+
+  setText("runtime", judge.runtime_ms != null ? `${judge.runtime_ms} ms` : "-");
+
+  setText("memory", judge.memory_kb != null ? `${judge.memory_kb} KB` : "-");
+
+  setText(
+    "tests",
+    judge.tests_passed != null
+      ? `${judge.tests_passed}/${judge.tests_total}`
+      : "-",
   );
-  const status = String(result.status || "").toLowerCase();
-  const judge = result.judge_result || {};
-  const judgeCard = document.getElementById("judgeCard");
-  judgeCard.classList.remove(
-        "d-none"
-    );
-  const statusElement = document.getElementById("judgeStatus");
-  statusElement.textContent = formatStatus(status);
-  setText(
-        "runtime",
-        judge.runtime_ms != null
-            ? `${judge.runtime_ms} ms`
-            : "-"
-    );
-  setText(
-        "memory",
-        judge.memory_kb != null
-            ? `${judge.memory_kb} KB`
-            : "-"
-    );
-  if (judge.tests_passed != null && judge.tests_total != null) {
-        setText(
-            "tests",
-            `${judge.tests_passed}/${judge.tests_total}`
-          );
-    } else {
-      setText("tests","-");
-    }
 
-  if (status === "accepted") {
-    setAgentStatus(
-      "Accepted. Agent evaluating solution..."
-    );
-      showToast(
-         "Solution accepted."
-      );
-  
-  } else if (status === "wrong_answer") {
-    setAgentStatus(
-        "Wrong answer. Agent can provide a hint."
-    );
-    showToast(
-        "Wrong answer."
-    );
-    
-  } else {
-    setAgentStatus(
-      "Judge returned an error."
-    );
-    
+  const error = judge.error || "";
+
+  const errorElement = document.getElementById("judgeError");
+
+  if (errorElement) {
+    if (error) {
+      errorElement.textContent = error;
+
+      errorElement.classList.remove("d-none");
+    } else {
+      errorElement.classList.add("d-none");
+    }
   }
 }
 
-function formatStatus(status) {
-    switch (status) {
-      case "accepted":
-          return "Accepted";
-      case "wrong_answer":
-          return "Wrong Answer";
-      case "error":
-          return "Error";
-      case "queued":
-          return "Queued";
-      default:
-          return status || "Unknown";
+/* =========================================================
+   PROGRESS
+========================================================= */
+
+async function loadProgress() {
+  const userId = localStorage.getItem("dsa_user_id");
+
+  if (!userId) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/progress?user_id=${encodeURIComponent(userId)}`,
+    );
+
+    const data = await readResponse(response);
+
+    const skill = data.skill_profile || {};
+
+    setText("skillScore", skill.score ?? skill.average_skill_score ?? 0);
+
+    setText("solved", skill.solved ?? 0);
+
+    setText("attempts", skill.attempts ?? 0);
+
+    setText("metricAccuracy", `${skill.accuracy ?? 0}%`);
+
+    renderProgressList(data.progress);
+  } catch (error) {
+    console.error("PROGRESS ERROR:", error);
+
+    showToast(error.message);
+  }
+}
+
+function renderProgressList(progress) {
+  const container = document.getElementById("progressList");
+
+  if (!container) {
+    return;
+  }
+
+  if (!progress) {
+    container.textContent = "No progress data yet.";
+
+    return;
+  }
+
+  /*
+   * Backend Tool may return either
+   * an array or an object.
+   */
+
+  if (Array.isArray(progress)) {
+    if (!progress.length) {
+      container.textContent = "No topic progress yet.";
+
+      return;
     }
 
+    container.innerHTML = progress
+      .map((item) => {
+        const name = item.topic_name || item.name || "Topic";
+
+        const score = item.skill_score ?? item.score ?? 0;
+
+        return `
+                        <div class="progress-row">
+
+                            <div>
+                                <strong>
+                                    ${escapeHtml(name)}
+                                </strong>
+
+                                <small>
+                                    Skill Score
+                                </small>
+                            </div>
+
+                            <strong>
+                                ${score}/100
+                            </strong>
+
+                        </div>
+                    `;
+      })
+      .join("");
+
+    return;
+  }
+
+  container.innerHTML = `<pre class="data-box">${escapeHtml(
+    JSON.stringify(progress, null, 2),
+  )}</pre>`;
+}
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+async function loadProfile() {
+  /*
+   * Current agent session already
+   * contains user information.
+   */
+
+  await loadSession();
+
+  /*
+   * Saved summaries require:
+   *
+   * GET /api/topic-summary?user_id=X
+   *
+   */
+
+  await loadSavedSummaries();
+}
+
+async function loadSavedSummaries() {
+  const userId = localStorage.getItem("dsa_user_id");
+
+  const container = document.getElementById("savedSummaries");
+
+  if (!container || !userId) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/topic-summary?user_id=${encodeURIComponent(userId)}`,
+    );
+
+    if (response.status === 404) {
+      container.innerHTML = `<p class="text-secondary">
+                    Saved topic history will appear here.
+                </p>`;
+
+      return;
+    }
+
+    const data = await readResponse(response);
+
+    const summaries = Array.isArray(data) ? data : data.summaries || [];
+
+    if (!summaries.length) {
+      container.innerHTML = `<p class="text-secondary">
+                    No saved topic summaries yet.
+                </p>`;
+
+      return;
+    }
+
+    container.innerHTML = summaries
+      .map((item) => {
+        return `
+                        <article class="saved-summary">
+
+                            <h4>
+                                ${escapeHtml(item.topic_name || "Topic")}
+                            </h4>
+
+                            <p>
+                                ${escapeHtml(item.summary || "")}
+                            </p>
+
+                        </article>
+                    `;
+      })
+      .join("");
+  } catch (error) {
+    console.error("SUMMARY HISTORY ERROR:", error);
+
+    container.innerHTML = `<p class="text-secondary">
+                Could not load saved summaries.
+            </p>`;
+  }
+}
+
+async function loadProblemPage() {
+  const threadId = localStorage.getItem("dsa_thread_id");
+
+  if (!threadId) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/agent/session/` + `${encodeURIComponent(threadId)}/current`,
+    );
+
+    session = await readResponse(response);
+
+    renderSession(session);
+
+    const task = session.task || {};
+
+    setText("problemTopicName", session?.topic?.name || task.topic || "DSA");
+
+    const summary = getTopicSummary(session);
+
+    setText("problemSummary", summary || "No topic summary available.");
+  } catch (error) {
+    console.error("PROBLEM PAGE ERROR:", error);
+  }
+}
+
+/* =========================================================
+   DRAFT
+========================================================= */
+
+function getDraftKey() {
+  const problemId =
+    session?.task?.problem_id || session?.task?.current_problem_id || "current";
+
+  return `dsa_draft_${problemId}`;
 }
 
 function saveDraft() {
-  const code = document.getElementById("solutionCode").value;
-  localStorage.setItem("dsa_solution_draft", code);
-  showToast(
-        "Draft saved."
-  );
+  const code = document.getElementById("solutionCode")?.value || "";
 
+  localStorage.setItem(getDraftKey(), code);
+
+  showToast("Draft saved.");
 }
 
 function restoreDraft() {
-  const draft = localStorage.getItem("dsa_solution_draft");
+  const code = document.getElementById("solutionCode");
+
+  if (!code) {
+    return;
+  }
+
+  const draft = localStorage.getItem(getDraftKey());
+
   if (draft) {
-    document.getElementById("solutionCode").value = draft;
+    code.value = draft;
   }
 }
-function setText(id,value) {
-    const element =
-        document.getElementById(id);
-    if (element) {
-        element.textContent =
-            value;
-    }
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+async function readResponse(response) {
+  const text = await response.text();
+
+  let data;
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {
+      detail: text,
+    };
+  }
+
+  if (!response.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${response.status}`);
+  }
+
+  return data;
 }
-function getAttemptText(number) {
-    if (!number || number === 1) {
-        return "First attempt";
-    }
-    return `Attempt ${number}`;
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.textContent = value ?? "";
+  }
 }
+
 function setAgentStatus(message) {
-    setText(
-        "agentStatus",
-        message
-    );
+  setText("agentStatusBadge", message);
+}
+
+function formatStatus(status) {
+  switch (String(status || "").toLowerCase()) {
+    case "accepted":
+      return "Accepted";
+
+    case "wrong_answer":
+      return "Wrong Answer";
+
+    case "compilation_error":
+      return "Compilation Error";
+
+    case "runtime_error":
+      return "Runtime Error";
+
+    case "time_limit_exceeded":
+      return "Time Limit Exceeded";
+
+    default:
+      return status || "Unknown";
+  }
+}
+
+function getAttemptText(number) {
+  if (!number || number === 1) {
+    return "First attempt";
+  }
+
+  return `Attempt ${number}`;
 }
 
 function showToast(message) {
-    const toast =
-        document.getElementById(
-            "appToast"
-        );
-    toast.querySelector(
-        ".toast-body"
-    ).textContent = message;
-    bootstrap
-        .Toast
-        .getOrCreateInstance(toast)
-        .show();
-}
+  const toast = document.getElementById("appToast");
 
+  if (!toast) {
+    console.log(message);
+
+    return;
+  }
+
+  const body = toast.querySelector(".toast-body");
+
+  if (body) {
+    body.textContent = message;
+  }
+
+  if (window.bootstrap) {
+    bootstrap.Toast.getOrCreateInstance(toast).show();
+  }
+}
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}

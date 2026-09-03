@@ -32,6 +32,11 @@ class DSAState(TypedDict, total=False):
     current_topic: str
     available_subtopics: list[dict[str, Any]]
 
+    #problems
+    problem_pool_ready: bool
+    problem_pool_count: int
+
+
     # Current problem
     current_problem_id: str
     current_problem: dict[str, Any]

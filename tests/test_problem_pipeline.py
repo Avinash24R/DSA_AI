@@ -1,5 +1,6 @@
 from typing import Any, cast
 
+from backend.api.submission import normalize_test_case_row
 from scripts.setup import get_connection
 
 from ingestion.codefroce import (
@@ -148,6 +149,14 @@ def test_problem_data_is_valid():
                 assert row["difficulty"]
                 assert row["url"]
                 assert row["topics"] is not None
+
+
+def test_normalize_test_case_row_supports_output_alias():
+    expected = normalize_test_case_row({"input": "2\n", "expected_output": "4\n"})
+    actual = normalize_test_case_row({"input": "2\n", "output": "4\n"})
+
+    assert expected == {"input": "2\n", "output": "4\n"}
+    assert actual == {"input": "2\n", "output": "4\n"}
 
 
 def test_problem_topic_mapping():

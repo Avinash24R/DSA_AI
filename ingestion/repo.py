@@ -6,10 +6,7 @@ from psycopg.types.json import Jsonb
 
 
 def save_problem(problem: Problem) -> int:
-    source = problem.source
-    external_id = problem.problem_id.split(
-        ":" , 1
-    )[1]
+    
     query = """
         INSERT INTO problems (
             source,
@@ -41,7 +38,10 @@ def save_problem(problem: Problem) -> int:
 
         RETURNING id;
     """
-
+    source = problem.source
+    external_id = problem.problem_id.split(
+        ":" , 1
+    )[1]
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -69,7 +69,8 @@ def save_problem_topics(
     problem_id: int,
     topic_ids: list[int],
 ) -> None:
-
+    if not topic_ids:
+        return 
     query = """
         INSERT INTO problem_topics (
             problem_id,
@@ -90,3 +91,59 @@ def save_problem_topics(
                     ),
                 )
         conn.commit()
+
+def count_available_problems(
+    topic_id: int,
+    difficulty: str,
+) -> int:
+
+    query = """
+        SELECT COUNT(*) AS count
+        FROM problems p
+        JOIN problem_topics pt
+            ON pt.problem_id = p.id
+        WHERE
+            pt.roadmap_topic_id = %s
+            AND p.difficulty = %s;
+    """
+
+    with get_connection() as conn:
+
+        with conn.cursor() as cur:
+
+            cur.execute(
+                query,
+                (
+                    topic_id,
+                    difficulty,
+                ),
+            )
+
+            row = cur.fetchone()
+    return int(row["count"]) # type: ignore
+
+
+def get_problem_count_by_topic(
+    topic_id: int,
+) -> int:
+
+    query = """
+        SELECT COUNT(*) AS count
+        FROM problems p
+        JOIN problem_topics pt
+            ON pt.problem_id = p.id
+        WHERE pt.roadmap_topic_id = %s;
+    """
+
+    with get_connection() as conn:
+
+        with conn.cursor() as cur:
+
+            cur.execute(
+                query,
+                (topic_id,),
+            )
+
+            row = cur.fetchone()
+
+    return int(row["count"]) # type: ignore

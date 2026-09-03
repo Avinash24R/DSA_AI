@@ -23,6 +23,7 @@
 </head>
 
 <body>
+
 <section id="onboarding" class="onboarding">
 
     <div class="onboarding-card">
@@ -46,6 +47,7 @@
                 placeholder="Enter your name"
             >
         </div>
+
         <div class="form-group">
             <label>Email</label>
 
@@ -77,16 +79,7 @@
                 </option>
             </select>
         </div>
-        <div class="form-group">
-            <label>Codeforces Handle</label>
 
-            <input
-                id="onboardingCodeforces"
-                class="form-control"
-                placeholder="Enter your Codeforces username"
-            >
-        </div>
-        
         <button
             id="startLearningBtn"
             class="btn btn-primary w-100"
@@ -96,12 +89,12 @@
         </button>
 
     </div>
-
 </section>
 <div
     id="application"
     class="application d-none"
 >
+
     <aside class="sidebar">
 
         <div class="brand">
@@ -213,6 +206,9 @@
 
 
         <div class="content">
+
+            <!-- WELCOME -->
+
             <section class="welcome-card">
 
                 <div>
@@ -238,26 +234,16 @@
                 <i class="bi bi-robot welcome-icon"></i>
 
             </section>
-
-
-            <!-- AGENT STATE -->
-
             <section class="card-box agent-card">
-
                 <div class="section-header">
-
                     <div>
-
                         <small class="eyebrow">
                             AGENT
                         </small>
-
                         <h3>
                             Learning Session
                         </h3>
-
                     </div>
-
                     <span
                         id="agentStatusBadge"
                         class="status-badge"
@@ -402,38 +388,28 @@
                     </span>
 
                 </div>
-
-
                 <h2 id="taskTitle">
                     Problem
                 </h2>
 
-
                 <div class="problem-meta">
-
                     <span>
                         <i class="bi bi-clock"></i>
                         <span id="estimatedTime">
                             -
                         </span>
                     </span>
-
                     <span>
                         <i class="bi bi-code-slash"></i>
                         C++
                     </span>
-
                 </div>
-
-
                 <div
                     id="problemDescription"
                     class="problem-description"
                 >
                     Problem description will appear here.
                 </div>
-
-
                 <a
                     id="problemUrl"
                     href="#"
@@ -445,74 +421,46 @@
                 </a>
 
             </section>
-
-
-            <!-- CODE -->
-
             <section
-                id="editorCard"
-                class="card-box d-none"
+                id="codeforcesCard"
+                class="card-box"
             >
-
                 <div class="section-header">
-
                     <div>
-
                         <small class="eyebrow">
-                            SOLUTION
+                            CODEFORCES
                         </small>
-
                         <h3>
-                            Write your solution
+                            Solve the problem
                         </h3>
-
                     </div>
-
-                    <select
-                        id="language"
-                        class="form-select language-select"
-                    >
-                        <option value="cpp">
-                            C++
-                        </option>
-                    </select>
-
+                    <i class="bi bi-code-square"></i>
                 </div>
-
-
-                <textarea
-                    id="solutionCode"
-                    class="code-editor"
-                    spellcheck="false"
-                    placeholder="// Write your C++ solution here..."
-                ></textarea>
-
-
-                <div class="editor-actions">
-
-                    <button
-                        id="saveDraftBtn"
-                        class="btn btn-outline-secondary"
-                    >
-                        <i class="bi bi-save"></i>
-                        Save Draft
-                    </button>
-
-                    <button
-                        id="submitBtn"
+                <p class="text-secondary">
+                    Solve this problem on Codeforces.
+                    When your submission is judged, come back
+                    and check your submission.
+                </p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a
+                        id="solveOnCodeforcesBtn"
                         class="btn btn-primary"
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
                     >
-                        <i class="bi bi-send"></i>
-                        Submit Solution
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        Solve on Codeforces
+                    </a>
+                    <button
+                        id="checkSubmissionBtn"
+                        class="btn btn-outline-primary"
+                    >
+                        <i class="bi bi-arrow-repeat"></i>
+                        Check Submission
                     </button>
-
                 </div>
-
             </section>
-
-
-            <!-- JUDGE -->
-
             <section
                 id="judgeCard"
                 class="card-box d-none"
@@ -570,17 +518,12 @@
                 ></pre>
 
             </section>
-
         </div>
 
     </main>
 
 </div>
-
-<div
-    id="appToast"
-    class="toast position-fixed bottom-0 end-0 m-4"
->
+<div id="appToast" class="toast position-fixed bottom-0 end-0 m-4">
     <div class="toast-body">
         Ready
     </div>

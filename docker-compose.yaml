@@ -35,6 +35,7 @@ services:
         condition: service_healthy
   roadmap-seeder:
     image: python:3.13-slim
+    profiles: ["seed"]
     container_name: dsa_roadmap_seeder
     working_dir: /app
     volumes:

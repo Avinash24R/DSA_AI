@@ -2,13 +2,12 @@ from langgraph.types import Command
 from langchain_core.runnables import RunnableConfig
 from typing import cast
 from Agent.state import DSAState
-from Agent.graph import build_graph
+from Agent.graph import graph
 from Tools.problem_tools import get_problem
 from Tools.problem_tools import get_test_cases
 
 from .judge_service import run_code
-
-graph = build_graph()
+import uuid
 
 def get_config(thread_id : str):
     return cast(RunnableConfig, {
@@ -17,28 +16,45 @@ def get_config(thread_id : str):
         }
     })
 def start_session(user_id: int):
-    thread_id = f"user-{user_id}"
-    config: RunnableConfig = get_config(thread_id)
+    thread_id = f"user-{user_id}--{uuid.uuid4()}"
+    config = get_config(thread_id)
 
     state :DSAState ={
         "user_id" : user_id
     }
-
-    result = graph.invoke(
-        state,
-        config=config
-    )
+    try : 
+        result = graph.invoke(
+            state,
+            config=config
+        )
+    except Exception as e:
+        print(f"START SESSION ERROR : {type(e).__name__}: {e}")
+        raise
     return {
         "thread_id": thread_id,
+        "user_id" : user_id,
         "state": result
     }
 def get_current_session(thread_id: str):
-
     config = get_config(thread_id)
-
     state = graph.get_state(config)
 
-    return state.values
+    if not state or not state.values:
+        raise ValueError("Session not found")
+    
+    values = state.values
+    return  {
+        "thread_id":thread_id,
+        "user":values.get("user"),
+        "skill":values.get("skill"),
+        "topic":{
+            "name":values.get("topic"),
+            "summary":values.get("topic_summary"),
+        },
+        "task":values.get("current_problem"),
+        "next_action":values.get("next_action"),
+    }
+
 async def submit_solution(thread_id:str, code:str, language: str):
     config = get_config(thread_id)
 

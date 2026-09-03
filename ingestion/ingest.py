@@ -2,93 +2,20 @@ from .codefroce import fetch_codeforces_problems
 from .repo import (
     save_problem,
     save_problem_topics,
+    count_available_problems
 )
 from .normalizer import (
     normalize_topic,
-    map_provider_tag
+    map_provider_tag,
+    map_problem_topics,
+    TAG_ALIASES
 )
 
 
 from scripts.setup import get_connection
 
-TAG_ALIASES = {
 
-    # Arrays
-    "array": "Arrays",
-
-    # Two pointer
-    "two_pointers": "Two Pointer",
-    "two_pointer": "Two Pointer",
-
-    # Sliding window
-    "sliding_window": "Sliding Window",
-
-    # Binary search
-    "binary_search": "Binary Search",
-
-    # Prefix sum
-    "prefix_sums": "Prefix Sum",
-    "prefix_sum": "Prefix Sum",
-
-    # Hashing
-    "hash": "Hashing",
-    "hashing": "Hashing",
-    "hash_table": "Hashing",
-    "data_structures": "Hashing",
-
-    # Stack
-    "stacks": "Stack",
-    "stack": "Stack",
-
-    # Queue
-    "queues": "Queue",
-    "queue": "Queue",
-
-    # Graph
-    "graphs": "Graph",
-    "graph": "Graph",
-
-    # Trees
-    "trees": "Tree",
-    "tree": "Tree",
-
-    # DP
-    "dp": "Dynamic Programming",
-    "dynamic_programming": "Dynamic Programming",
-
-    # Greedy
-    "greedy": "Greedy",
-
-    # Recursion
-    "recursion": "Recursion",
-
-    "backtracking": "Backtracking",
-}
-
-def map_problem_topics(
-    provider_topics: list[str],
-    roadmap_topics: dict[str, int],
-) -> list[int]:
-
-    topic_ids = []
-
-    for tag in provider_topics:
-
-        roadmap_name = TAG_ALIASES.get(tag)
-
-        if not roadmap_name:
-            continue
-
-        topic_id = roadmap_topics.get(
-            roadmap_name.lower()
-        )
-
-        if topic_id:
-            topic_ids.append(topic_id)
-
-    return list(set(topic_ids))
 def get_roadmap_topic_map() -> dict[str, int]:
-
     query = """
         SELECT id, name
         FROM roadmap_topics
@@ -102,11 +29,17 @@ def get_roadmap_topic_map() -> dict[str, int]:
             rows = cur.fetchall()
 
     return {
-        row["name"].lower(): row["id"] # type: ignore
+        normalize_topic(row["name"]): row["id"] # type: ignore
         for row in rows
     }
-def ingest_codeforces(limit: int = 5) -> int:
-    print(f"Fetching {limit} Codeforces problems...")
+def ingest_codeforces(topic_id: int,
+    difficulty: str,limit: int = 10) -> int:
+    print(
+        f"[INGEST] Fetching Codeforces problems "
+        f"topic_id={topic_id}, "
+        f"difficulty={difficulty}, "
+        f"limit={limit}"
+    )
 
     problems = fetch_codeforces_problems(limit=limit)
     roadmap_topics = get_roadmap_topic_map()
@@ -114,15 +47,88 @@ def ingest_codeforces(limit: int = 5) -> int:
     inserted = 0
 
     for problem in problems:
-        problem_id = save_problem(problem)
+        if problem.difficulty != difficulty:
+            continue
+        
         topic_ids = map_problem_topics(problem.topics, roadmap_topics)
+        if not topic_ids:
+            continue
+        problem_id = save_problem(problem)
         save_problem_topics(problem_id, topic_ids)
 
         inserted += 1
-        print(f"Inserted: {problem.problem_id} | {problem.title}")
+        print(
+            f"[INGEST] {problem.problem_id} | "
+            f"{problem.title} | "
+            f"{problem.difficulty}"
+        )
+        if inserted >= limit:
+            break
+        print(f"[INGEST] Added {inserted} problems")
+
 
     return inserted
 
+def ensure_problem_pool(
+    topic_id: int,
+    difficulty: str,
+    minimum: int = 5,
+    refill: int = 10,
+) -> int:
+    current = count_available_problems(
+        topic_id=topic_id,
+        difficulty=difficulty,
+    )
+    print(
+        f"[POOL] topic={topic_id} "
+        f"difficulty={difficulty} "
+        f"current={current} "
+        f"minimum={minimum}"
+    )
+    if current >= minimum:
+        print("[POOL] Enough problems available")
+        return current
+    needed = max(
+        refill,
+        minimum - current,
+    )
+    print(
+        f"[POOL] Need more problems: {needed}"
+    )
+    added = ingest_codeforces(
+        topic_id=topic_id,
+        difficulty=difficulty,
+        limit=needed,
+    )
+    final_count = count_available_problems(
+        topic_id=topic_id,
+        difficulty=difficulty,
+    )
+    print(
+        f"[POOL] Final problem count: "
+        f"{final_count}"
+    )
+    if final_count == 0:
+        raise ValueError(
+            "Unable to find Codeforces problems "
+            f"for topic_id={topic_id}, "
+            f"difficulty={difficulty}"
+        )
+    return final_count
 
 if __name__ == "__main__":
-    ingest_codeforces(5)
+
+    # Manual test only.
+
+    # Example:
+    # python -m Tools.ingestion.ingest
+
+    topic_map = get_roadmap_topic_map()
+
+    print("Available roadmap topics:")
+
+    for name, topic_id in topic_map.items():
+
+        print(
+            f"{topic_id}: {name}"
+        )

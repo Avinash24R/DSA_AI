@@ -1,6 +1,10 @@
-create table users(
+CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
-    username VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(100) UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    level VARCHAR(50) NOT NULL DEFAULT 'Beginner',
+    codeforces_handle NOT NULL UNIQUE VARCHAR(50);
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- use hierarchical table
@@ -18,6 +22,23 @@ CREATE TABLE roadmap_topics (
 
     UNIQUE(parent_id, name)
 );
+CREATE TABLE topic_summaries (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    roadmap_topic_id BIGINT
+        REFERENCES roadmap_topics(id)
+        ON DELETE SET NULL,
+    topic_name VARCHAR(150) NOT NULL,
+    summary TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, roadmap_topic_id)
+);
+
+CREATE INDEX idx_topic_summaries_user_id
+ON topic_summaries(user_id);
 
 CREATE TABLE user_progress (
     id BIGSERIAL PRIMARY KEY,
