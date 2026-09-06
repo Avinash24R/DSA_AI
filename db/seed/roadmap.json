@@ -75,6 +75,378 @@
           "sequence_order": 9
         }
       ]
+    },
+
+    {
+      "name": "Linked List",
+      "node_type": "topic",
+      "sequence_order": 2,
+      "children": [
+        {
+          "name": "Traversal",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Fast and Slow Pointer",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Reverse Linked List",
+          "node_type": "pattern",
+          "sequence_order": 3
+        },
+        {
+          "name": "Merge Lists",
+          "node_type": "pattern",
+          "sequence_order": 4
+        },
+        {
+          "name": "Cycle Detection",
+          "node_type": "pattern",
+          "sequence_order": 5
+        }
+      ]
+    },
+
+    {
+      "name": "Stack",
+      "node_type": "topic",
+      "sequence_order": 3,
+      "children": [
+        {
+          "name": "Monotonic Stack",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Next Greater Element",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Expression Evaluation",
+          "node_type": "pattern",
+          "sequence_order": 3
+        }
+      ]
+    },
+
+    {
+      "name": "Queue",
+      "node_type": "topic",
+      "sequence_order": 4,
+      "children": [
+        {
+          "name": "BFS",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Deque",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Monotonic Queue",
+          "node_type": "pattern",
+          "sequence_order": 3
+        }
+      ]
+    },
+
+    {
+      "name": "Hashing",
+      "node_type": "topic",
+      "sequence_order": 5,
+      "children": [
+        {
+          "name": "Frequency Map",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Set",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Prefix Hashing",
+          "node_type": "pattern",
+          "sequence_order": 3
+        }
+      ]
+    },
+
+    {
+      "name": "String",
+      "node_type": "topic",
+      "sequence_order": 6,
+      "children": [
+        {
+          "name": "String Traversal",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "String Hashing",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Two Pointer",
+          "node_type": "pattern",
+          "sequence_order": 3
+        },
+        {
+          "name": "Frequency",
+          "node_type": "pattern",
+          "sequence_order": 4
+        }
+      ]
+    },
+
+    {
+      "name": "Binary Search",
+      "node_type": "topic",
+      "sequence_order": 7,
+      "children": [
+        {
+          "name": "Search on Array",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Search on Answer",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Lower Bound / Upper Bound",
+          "node_type": "pattern",
+          "sequence_order": 3
+        }
+      ]
+    },
+
+    {
+      "name": "Tree",
+      "node_type": "topic",
+      "sequence_order": 8,
+      "children": [
+        {
+          "name": "DFS",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "BFS",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Binary Tree",
+          "node_type": "pattern",
+          "sequence_order": 3
+        },
+        {
+          "name": "Binary Search Tree",
+          "node_type": "pattern",
+          "sequence_order": 4
+        },
+        {
+          "name": "Tree Traversal",
+          "node_type": "pattern",
+          "sequence_order": 5
+        }
+      ]
+    },
+
+    {
+      "name": "Heap / Priority Queue",
+      "node_type": "topic",
+      "sequence_order": 9,
+      "children": [
+        {
+          "name": "Min Heap",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Max Heap",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Top K",
+          "node_type": "pattern",
+          "sequence_order": 3
+        }
+      ]
+    },
+
+    {
+      "name": "Graph",
+      "node_type": "topic",
+      "sequence_order": 10,
+      "children": [
+        {
+          "name": "BFS",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "DFS",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Shortest Path",
+          "node_type": "pattern",
+          "sequence_order": 3
+        },
+        {
+          "name": "Topological Sort",
+          "node_type": "pattern",
+          "sequence_order": 4
+        },
+        {
+          "name": "DSU",
+          "node_type": "pattern",
+          "sequence_order": 5
+        },
+        {
+          "name": "MST",
+          "node_type": "pattern",
+          "sequence_order": 6
+        }
+      ]
+    },
+
+    {
+      "name": "Greedy",
+      "node_type": "topic",
+      "sequence_order": 11,
+      "children": [
+        {
+          "name": "Sorting Greedy",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Interval Greedy",
+          "node_type": "pattern",
+          "sequence_order": 2
+        }
+      ]
+    },
+
+    {
+      "name": "Dynamic Programming",
+      "node_type": "topic",
+      "sequence_order": 12,
+      "children": [
+        {
+          "name": "1D DP",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "2D DP",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Knapsack",
+          "node_type": "pattern",
+          "sequence_order": 3
+        },
+        {
+          "name": "LIS",
+          "node_type": "pattern",
+          "sequence_order": 4
+        },
+        {
+          "name": "Subsequence DP",
+          "node_type": "pattern",
+          "sequence_order": 5
+        }
+      ]
+    },
+
+    {
+      "name": "Backtracking",
+      "node_type": "topic",
+      "sequence_order": 13,
+      "children": [
+        {
+          "name": "Subsets",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Permutations",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Combinations",
+          "node_type": "pattern",
+          "sequence_order": 3
+        }
+      ]
+    },
+
+    {
+      "name": "Bit Manipulation",
+      "node_type": "topic",
+      "sequence_order": 14,
+      "children": [
+        {
+          "name": "Bitmask",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "XOR",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "Bitwise Operations",
+          "node_type": "pattern",
+          "sequence_order": 3
+        }
+      ]
+    },
+
+    {
+      "name": "Math",
+      "node_type": "topic",
+      "sequence_order": 15,
+      "children": [
+        {
+          "name": "Number Theory",
+          "node_type": "pattern",
+          "sequence_order": 1
+        },
+        {
+          "name": "Prime Numbers",
+          "node_type": "pattern",
+          "sequence_order": 2
+        },
+        {
+          "name": "GCD / LCM",
+          "node_type": "pattern",
+          "sequence_order": 3
+        },
+        {
+          "name": "Combinatorics",
+          "node_type": "pattern",
+          "sequence_order": 4
+        }
+      ]
     }
   ]
 }

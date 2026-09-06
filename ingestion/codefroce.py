@@ -33,9 +33,7 @@ def fetch_codeforces_problems(limit: int | None = None) -> list[Problem]:
     data = response.json()
 
     if data["status"] != "OK":
-        raise RuntimeError(
-            f"Codeforces API error: {data.get('comment')}"
-        )
+        raise RuntimeError(f"Codeforces API error: {data.get('comment')}")
 
     problems:list[Problem] = []
 
@@ -74,8 +72,5 @@ def fetch_codeforces_problems(limit: int | None = None) -> list[Problem]:
         )
 
         problems.append(problem)
-
-        if limit is not None and len(problems) >= limit:
-            break
 
     return problems

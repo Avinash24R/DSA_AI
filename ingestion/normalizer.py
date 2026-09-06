@@ -1,44 +1,41 @@
 import re
 from scripts.setup import get_connection
+
 TAG_ALIASES = {
     # Arrays
     "array": "Arrays",
+    "arrays": "Arrays",
 
-    # Two pointer
-    "two_pointers": "Two Pointer",
+    "prefix_sum": "Prefix Sum",
+    "prefix_sums": "Prefix Sum",
+    "difference_array": "Difference Array",
+    "difference_arrays": "Difference Array",
     "two_pointer": "Two Pointer",
-
-    # Sliding window
+    "two_pointers": "Two Pointer",
     "sliding_window": "Sliding Window",
-
-    # Binary search
     "binary_search": "Binary Search",
 
-    # Prefix sum
-    "prefix_sums": "Prefix Sum",
-    "prefix_sum": "Prefix Sum",
-
     # Hashing
-    "hash": "Hashing",
     "hashing": "Hashing",
     "hash_table": "Hashing",
-    "data_structures": "Hashing",
 
     # Stack
-    "stacks": "Stack",
-    "stack": "Stack",
+    "stack": "Monotonic Stack",
+    "stacks": "Monotonic Stack",
 
-    # Queue
-    "queues": "Queue",
-    "queue": "Queue",
+    # Linked List
+    "linked_list": "Linked List",
+    "linked_lists": "Linked List",
 
-    # Graph
-    "graphs": "Graph",
-    "graph": "Graph",
-
-    # Trees
+    # Tree
     "trees": "Tree",
     "tree": "Tree",
+
+    # Graph
+    "graph": "Graph",
+    "graphs": "Graph",
+    "dfs_and_similar": "Graph",
+    "dsu": "Graph",
 
     # DP
     "dp": "Dynamic Programming",
@@ -47,10 +44,17 @@ TAG_ALIASES = {
     # Greedy
     "greedy": "Greedy",
 
-    # Recursion
-    "recursion": "Recursion",
 
     "backtracking": "Backtracking",
+
+    "bitmasks": "Bit Manipulation",
+    "bitmask": "Bit Manipulation",
+
+    "math": "Math",
+    "number_theory": "Math",
+    "combinatorics": "Math",
+
+    "data_structures": "Heap / Priority Queue",
 }
 
 def normalize_topic(value: str) -> str:
@@ -62,7 +66,15 @@ def normalize_topic(value: str) -> str:
 
     return value.strip("_")
 
+def build_roadmap_topic_map(roadmap_rows: list[dict])-> dict[str, int]:
+    result = {}
 
+    for row in roadmap_rows:
+        key = normalize_topic(row["name"])
+
+        result[key] = row["id"]
+
+    return result
 def map_provider_tag(
     provider_tag: str,
     roadmap_topics: dict[str, int],
@@ -86,17 +98,36 @@ def map_problem_topics(
     provider_topics: list[str],
     roadmap_topics: dict[str, int],
 ) -> list[int]:
-
     topic_ids: set[int] = set()
-
     for provider_topic in provider_topics:
-
         topic_id = map_provider_tag(
             provider_topic,
-            roadmap_topics,
+            roadmap_topics
         )
 
         if topic_id is not None:
             topic_ids.add(topic_id)
 
     return list(topic_ids)
+def expand_parent_topics(
+    topic_ids: list[int],
+    roadmap_rows: list[dict],
+) -> list[int]:
+    parent_map = {
+        row["id"]: row["parent_id"]
+        for row in roadmap_rows
+    }
+    expanded = set(topic_ids)
+    for topic_id in topic_ids:
+        current = topic_id
+
+        while current in parent_map:
+            parent_id = parent_map[current]
+
+            if parent_id is None:
+                break
+
+            expanded.add(parent_id)
+            current = parent_id
+
+    return list(expanded)

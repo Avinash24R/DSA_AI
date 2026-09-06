@@ -17,7 +17,7 @@ def get_llm() -> ChatGroq:
         )
 
     return ChatGroq(
-        model="qwen/qwen3.6-27b",
+        model="openai/gpt-oss-20b",
         temperature=0.1,
         api_key=groq_api_key,  # type: ignore
     )

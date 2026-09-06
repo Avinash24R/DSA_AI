@@ -76,7 +76,7 @@ async function createUserAndSession() {
   const name = document.getElementById("onboardingName")?.value.trim();
   const email = document.getElementById("onboardingEmail")?.value.trim();
   const level = document.getElementById("onboardingLevel")?.value;
-  const codefrocesHandle = document.getElementById("onboardingCodeforces")?.value.trim();
+  const codeforcesHandle = document.getElementById("onboardingCodeforces")?.value.trim();
   if (!name) {
     showToast("Please enter your name.");
     return;
@@ -109,7 +109,7 @@ async function createUserAndSession() {
         name: name,
         email: email,
         level: level,
-        codeforces_handle: codefrocesHandle,
+        codeforces_handle: codeforcesHandle,
       }),
     });
 

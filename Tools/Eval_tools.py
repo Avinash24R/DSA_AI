@@ -72,6 +72,60 @@ def save_attempt(user_id,roadmap_topic_id , problem_id, attempt_number, thinking
         with conn.cursor() as cur:
             cur.execute(query , params)
         conn.commit()
+def create_problem_assignment(
+    user_id: int | None,
+    problem_id: int | None,
+) -> int:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO problem_assignments (
+                    user_id,
+                    problem_id
+                )
+                VALUES (%s, %s)
+                RETURNING id;
+                """,
+                (
+                    user_id,
+                    problem_id,
+                ),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    if isinstance(row, dict):
+        return row["id"] # type: ignore
+    return row[0]
+
+def complete_problem_assignment(
+    assignment_id: int,
+    submission_id: int,
+    submitted_at,
+) -> None:
+
+    with get_connection() as conn:
+
+        with conn.cursor() as cur:
+
+            cur.execute(
+                """
+                UPDATE problem_assignments
+                SET
+                    submitted_at = %s,
+                    codeforces_submission_id = %s,
+                    status = 'submitted'
+                WHERE id = %s
+                """,
+                (
+                    submitted_at,
+                    submission_id,
+                    assignment_id,
+                ),
+            )
+
+        conn.commit()
+
 def update_progress(user_id ,roadmap_topic_id ,evaluation , thinking_time_seconds):
     '''
     Update aggregate user progress.

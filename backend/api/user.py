@@ -16,7 +16,7 @@ def create_user(user:UserCreate):
         name=EXCLUDED.name,
         level=EXCLUDED.level,
         codeforces_handle=EXCLUDED.codeforces_handle
-    RETURNING id,name,email,level;
+    RETURNING id,name,email,level,codeforces_handle;
     """
 
     try:

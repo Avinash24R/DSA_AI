@@ -42,11 +42,14 @@ class DSAState(TypedDict, total=False):
     current_problem: dict[str, Any]
 
     # Problem session
+    problem_assignment_id: int
+    assigned_problem_id: str
     attempt_number: int
     hint_level: int
     thinking_time_seconds: int
     thinking_start_time : float
     user_answer: str
+
 
     # Evaluatio2
     judge_result: dict[str, Any]

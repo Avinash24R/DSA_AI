@@ -12,7 +12,8 @@ from backend.services.agent_service import (
     submit_solution,
 )
 from backend.services.codeforces_service import (
-    check_codeforces_submission
+    check_codeforces_submission,
+    get_problem_assignment
 )
 
 class SessionStartRequest(BaseModel):
@@ -111,10 +112,16 @@ async def check_submission(thread_id : str):
     metadata = problem.get("metadata" , {})
     problem_index = metadata.get("index")
     contest_id = metadata.get("contest_id")
-
+    assigment_id = current_state.get("problem_assignment_id")
+    if not assigment_id:
+        raise ValueError("No active problem assignment")
+    assignment = get_problem_assignment(assigment_id) # type: ignore
+    if not assignment:
+        raise ValueError("Problem assigment not found")
+    assigned_at = assignment["assigned_at"]
     if contest_id is None or not problem_index:
         raise ValueError("Codeforcw problem metadata is incomplete")
-    judge_res = check_codeforces_submission(handle=codeforces_handle, contest_id=contest_id, problem_index=problem_index)
+    judge_res = check_codeforces_submission(handle=codeforces_handle, contest_id=contest_id, problem_index=problem_index, assigned_at=assigned_at)
     if not judge_res["found"]:
         return {
             "status": "not_found",

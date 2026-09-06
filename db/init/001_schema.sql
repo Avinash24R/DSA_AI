@@ -4,7 +4,7 @@ CREATE TABLE users (
     name VARCHAR(150) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     level VARCHAR(50) NOT NULL DEFAULT 'Beginner',
-    codeforces_handle NOT NULL UNIQUE VARCHAR(50);
+    codeforces_handle VARCHAR(100) NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- use hierarchical table
@@ -146,6 +146,19 @@ CREATE TABLE problems (
 
     UNIQUE(source, external_id)
 );
+CREATE TABLE problem_assignments (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    problem_id BIGINT NOT NULL
+        REFERENCES problems(id)
+        ON DELETE CASCADE,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    submitted_at TIMESTAMPTZ,
+    codeforces_submission_id BIGINT,
+    status VARCHAR(30) NOT NULL DEFAULT 'assigned'
+);
 CREATE TABLE problem_topics (
     problem_id BIGINT NOT NULL
         REFERENCES problems(id)
@@ -168,3 +181,9 @@ CREATE TABLE problem_test_cases (
 
 CREATE INDEX idx_problem_test_cases_problem_id
 ON problem_test_cases(problem_id);
+CREATE INDEX idx_problem_assignments_user
+ON problem_assignments(user_id);
+CREATE INDEX idx_problem_assignments_problem
+ON problem_assignments(problem_id);
+CREATE INDEX idx_problem_assignments_user_problem
+ON problem_assignments(user_id, problem_id);
