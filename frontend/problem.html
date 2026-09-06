@@ -1,540 +1,75 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>DSA AI Tutor</title>
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-        rel="stylesheet"
-    >
-
-    <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Problem Lab · DSA AI Tutor</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-icon"><i class="bi bi-cpu"></i></div><span>DSA <strong>AI Tutor</strong></span></div>
+  <nav class="nav"><a class="nav-item " href="index.html"><i class="bi bi-house"></i><span>Home</span></a>
+<a class="nav-item active" href="problem.html"><i class="bi bi-code-square"></i><span>Problem</span></a>
+<a class="nav-item " href="progress.html"><i class="bi bi-graph-up"></i><span>Progress</span></a>
+<a class="nav-item " href="user.html"><i class="bi bi-person"></i><span>Profile</span></a></nav>
+  <div class="sidebar-footer"><a class="reset-link" href="#" data-reset-session><i class="bi bi-arrow-counterclockwise"></i> Reset local session</a></div>
+</aside>
+<main class="main">
+<header class="topbar">
+  <div class="topbar-title"><small>DSA AI Tutor</small><h1>Problem Lab</h1></div>
+  <div class="user-mini"><div class="avatar" id="avatarLetter">S</div><div><strong id="userName">Student</strong><small id="userLevel">Beginner</small></div></div>
+</header>
 
-<section id="onboarding" class="onboarding">
-
-    <div class="onboarding-card">
-
-        <div class="brand-large">
-            <i class="bi bi-cpu"></i>
+<div class="content">
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="eyebrow">Current assignment</div>
+        <div class="topic-title"><h2 id="taskTitle" class="problem-title">Loading problem…</h2><span id="difficultyBadge" class="badge easy">Easy</span></div>
+        <div class="problem-meta">
+          <span class="meta"><i class="bi bi-diagram-3"></i> <span id="taskTopic">DSA</span></span>
+          <span class="meta"><i class="bi bi-clock"></i> <span id="estimatedTime">—</span></span>
+          <span class="meta"><i class="bi bi-repeat"></i> <span id="attemptText">First attempt</span></span>
         </div>
-
-        <h1>DSA AI Tutor</h1>
-
-        <p class="text-secondary">
-            Your AI-powered personalized DSA learning system.
-        </p>
-
-        <div class="form-group">
-            <label>Name</label>
-
-            <input
-                id="onboardingName"
-                class="form-control"
-                placeholder="Enter your name"
-            >
-        </div>
-
-        <div class="form-group">
-            <label>Email</label>
-
-            <input
-                id="onboardingEmail"
-                type="email"
-                class="form-control"
-                placeholder="Enter your email"
-            >
-        </div>
-
-        <div class="form-group">
-            <label>DSA Level</label>
-
-            <select
-                id="onboardingLevel"
-                class="form-select"
-            >
-                <option value="Beginner">
-                    Beginner
-                </option>
-
-                <option value="Intermediate">
-                    Intermediate
-                </option>
-
-                <option value="Advanced">
-                    Advanced
-                </option>
-            </select>
-        </div>
-
-        <button
-            id="startLearningBtn"
-            class="btn btn-primary w-100"
-        >
-            <i class="bi bi-play-fill"></i>
-            Start Learning
-        </button>
-
+      </div>
+      <div class="icon-box"><i class="bi bi-code-square"></i></div>
     </div>
-</section>
-<div
-    id="application"
-    class="application d-none"
->
-
-    <aside class="sidebar">
-
-        <div class="brand">
-
-            <div class="brand-icon">
-                <i class="bi bi-cpu"></i>
-            </div>
-
-            <span>
-                DSA <strong>AI Tutor</strong>
-            </span>
-
-        </div>
-
-        <nav class="navigation">
-
-            <a
-                href="index.html"
-                class="nav-item active"
-            >
-                <i class="bi bi-house"></i>
-                Home
-            </a>
-
-            <a
-                href="problems.html"
-                class="nav-item"
-            >
-                <i class="bi bi-code-square"></i>
-                Problems
-            </a>
-
-            <a
-                href="progress.html"
-                class="nav-item"
-            >
-                <i class="bi bi-graph-up"></i>
-                Progress
-            </a>
-
-            <a
-                href="user.html"
-                class="nav-item"
-            >
-                <i class="bi bi-person"></i>
-                Profile
-            </a>
-
-        </nav>
-
-    </aside>
-
-    <main class="main">
-
-        <header class="topbar">
-
-            <div>
-
-                <small>
-                    Current Topic
-                </small>
-
-                <div class="topic-path">
-
-                    <span id="topicName">
-                        Loading...
-                    </span>
-
-                    <i class="bi bi-chevron-right"></i>
-
-                    <span id="subtopicName">
-                        ...
-                    </span>
-
-                </div>
-
-            </div>
-
-
-            <div class="user-header">
-
-                <div class="header-stat">
-                    <span id="xp">0</span>
-                    <small>XP</small>
-                </div>
-
-                <div class="header-stat">
-                    <span id="accuracy">0%</span>
-                    <small>Accuracy</small>
-                </div>
-
-                <div class="avatar">
-                    <span id="avatarLetter">S</span>
-                </div>
-
-                <div>
-                    <strong id="userName">
-                        Student
-                    </strong>
-
-                    <small id="userLevel">
-                        Beginner
-                    </small>
-                </div>
-
-            </div>
-
-        </header>
-
-
-        <div class="content">
-
-            <!-- WELCOME -->
-
-            <section class="welcome-card">
-
-                <div>
-
-                    <p class="eyebrow">
-                        AI LEARNING SESSION
-                    </p>
-
-                    <h1>
-                        Welcome,
-                        <span id="welcomeName">
-                            Student
-                        </span>
-                    </h1>
-
-                    <p>
-                        Your AI agent has selected the next
-                        topic based on your learning progress.
-                    </p>
-
-                </div>
-
-                <i class="bi bi-robot welcome-icon"></i>
-
-            </section>
-            <section class="card-box agent-card">
-                <div class="section-header">
-                    <div>
-                        <small class="eyebrow">
-                            AGENT
-                        </small>
-                        <h3>
-                            Learning Session
-                        </h3>
-                    </div>
-                    <span
-                        id="agentStatusBadge"
-                        class="status-badge"
-                    >
-                        Loading
-                    </span>
-
-                </div>
-
-                <div class="agent-flow">
-
-                    <div
-                        id="agentStepTopic"
-                        class="agent-step active"
-                    >
-                        <span>1</span>
-                        <div>
-                            <strong>Topic selected</strong>
-                            <small>
-                                AI determines what you should learn
-                            </small>
-                        </div>
-                    </div>
-
-                    <div
-                        id="agentStepSummary"
-                        class="agent-step"
-                    >
-                        <span>2</span>
-                        <div>
-                            <strong>Topic explained</strong>
-                            <small>
-                                Review the AI-generated summary
-                            </small>
-                        </div>
-                    </div>
-
-                    <div
-                        id="agentStepProblem"
-                        class="agent-step"
-                    >
-                        <span>3</span>
-                        <div>
-                            <strong>Problem</strong>
-                            <small>
-                                Apply what you learned
-                            </small>
-                        </div>
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <!-- TOPIC SUMMARY -->
-
-            <section
-                id="summaryCard"
-                class="card-box summary-card"
-            >
-
-                <div class="section-header">
-
-                    <div>
-
-                        <small class="eyebrow">
-                            AI EXPLANATION
-                        </small>
-
-                        <h2 id="summaryTitle">
-                            Current Topic
-                        </h2>
-
-                    </div>
-
-                    <i class="bi bi-lightbulb"></i>
-
-                </div>
-
-                <div
-                    id="topicSummary"
-                    class="summary-content"
-                >
-                    Waiting for the AI agent...
-                </div>
-
-                <div class="summary-footer">
-
-                    <span
-                        id="summarySaved"
-                        class="text-secondary"
-                    >
-                        Not saved
-                    </span>
-
-                    <button
-                        id="continueProblemBtn"
-                        class="btn btn-primary"
-                    >
-                        Continue to Problem
-                        <i class="bi bi-arrow-right"></i>
-                    </button>
-
-                </div>
-
-            </section>
-
-
-            <!-- CURRENT PROBLEM -->
-
-            <section
-                id="problemCard"
-                class="card-box problem-card d-none"
-            >
-
-                <div class="problem-header">
-
-                    <div>
-
-                        <span
-                            id="difficultyBadge"
-                            class="difficulty easy"
-                        >
-                            Easy
-                        </span>
-
-                        <span
-                            id="taskTopic"
-                            class="topic-badge"
-                        >
-                            DSA
-                        </span>
-
-                    </div>
-
-                    <span
-                        id="attemptText"
-                        class="text-secondary"
-                    >
-                        First attempt
-                    </span>
-
-                </div>
-                <h2 id="taskTitle">
-                    Problem
-                </h2>
-
-                <div class="problem-meta">
-                    <span>
-                        <i class="bi bi-clock"></i>
-                        <span id="estimatedTime">
-                            -
-                        </span>
-                    </span>
-                    <span>
-                        <i class="bi bi-code-slash"></i>
-                        C++
-                    </span>
-                </div>
-                <div
-                    id="problemDescription"
-                    class="problem-description"
-                >
-                    Problem description will appear here.
-                </div>
-                <a
-                    id="problemUrl"
-                    href="#"
-                    target="_blank"
-                    class="btn btn-outline-primary"
-                >
-                    Open Problem
-                    <i class="bi bi-box-arrow-up-right"></i>
-                </a>
-
-            </section>
-            <section
-                id="codeforcesCard"
-                class="card-box"
-            >
-                <div class="section-header">
-                    <div>
-                        <small class="eyebrow">
-                            CODEFORCES
-                        </small>
-                        <h3>
-                            Solve the problem
-                        </h3>
-                    </div>
-                    <i class="bi bi-code-square"></i>
-                </div>
-                <p class="text-secondary">
-                    Solve this problem on Codeforces.
-                    When your submission is judged, come back
-                    and check your submission.
-                </p>
-                <div class="d-flex gap-2 flex-wrap">
-                    <a
-                        id="solveOnCodeforcesBtn"
-                        class="btn btn-primary"
-                        href="#"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        <i class="bi bi-box-arrow-up-right"></i>
-                        Solve on Codeforces
-                    </a>
-                    <button
-                        id="checkSubmissionBtn"
-                        class="btn btn-outline-primary"
-                    >
-                        <i class="bi bi-arrow-repeat"></i>
-                        Check Submission
-                    </button>
-                </div>
-            </section>
-            <section
-                id="judgeCard"
-                class="card-box d-none"
-            >
-
-                <div class="section-header">
-
-                    <h3>
-                        Judge Result
-                    </h3>
-
-                    <strong id="judgeStatus">
-                        -
-                    </strong>
-
-                </div>
-
-                <div class="judge-grid">
-
-                    <div>
-                        <small>
-                            Runtime
-                        </small>
-
-                        <strong id="runtime">
-                            -
-                        </strong>
-                    </div>
-
-                    <div>
-                        <small>
-                            Memory
-                        </small>
-
-                        <strong id="memory">
-                            -
-                        </strong>
-                    </div>
-
-                    <div>
-                        <small>
-                            Tests
-                        </small>
-
-                        <strong id="tests">
-                            -
-                        </strong>
-                    </div>
-
-                </div>
-
-                <pre
-                    id="judgeError"
-                    class="judge-error d-none"
-                ></pre>
-
-            </section>
-        </div>
-
-    </main>
-
-</div>
-<div id="appToast" class="toast position-fixed bottom-0 end-0 m-4">
-    <div class="toast-body">
-        Ready
+    <div id="problemDescription" class="markdown-body"><div class="loading">Loading the problem…</div></div>
+    <div class="action-row">
+      <a id="solveOnCodeforcesBtn" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Solve on Codeforces</a>
+      <button id="checkSubmissionBtn" class="btn btn-outline"><i class="bi bi-arrow-repeat"></i> Check submission</button>
     </div>
+  </section>
+
+  <section class="card section-gap">
+    <div class="card-header"><div><div class="eyebrow">Before you code</div><h2>How to approach the problem</h2><p>Use this checklist. Do not jump straight to implementation.</p></div><div class="icon-box"><i class="bi bi-compass"></i></div></div>
+    <div class="approach-list">
+      <div class="approach-item"><div class="check">1</div><div><strong>Restate the task</strong><p>Identify exactly what must be returned, what every element means, and whether the whole input must be used.</p></div></div>
+      <div class="approach-item"><div class="check">2</div><div><strong>Find the constraint signal</strong><p>Use the input constraints to decide whether O(n²), O(n log n), O(n), or another complexity is realistic.</p></div></div>
+      <div class="approach-item"><div class="check">3</div><div><strong>Match the pattern</strong><p>Ask which pattern from the lesson applies: traversal, two pointers, sliding window, hashing, binary search, prefix sums, DP, and so on.</p></div></div>
+      <div class="approach-item"><div class="check">4</div><div><strong>Prove the invariant</strong><p>Before coding, state what your pointers, window, map, or DP state means and why it remains correct after each step.</p></div></div>
+      <div class="approach-item"><div class="check">5</div><div><strong>Test edge cases</strong><p>Check empty/small input, duplicates, boundaries, already-valid input, and the largest constraint you can construct.</p></div></div>
+      <div class="approach-item"><div class="check">6</div><div><strong>Submit on Codeforces</strong><p>After the solution passes, return here and use <b>Check submission</b>. The backend verifies the Codeforces submission against your assigned problem and assignment time.</p></div></div>
+    </div>
+  </section>
+
+  <section id="judgeCard" class="card section-gap" style="display:none">
+    <div class="card-header"><div><div class="eyebrow">Judge</div><h2>Submission result</h2><p id="judgeError"></p></div><span id="judgeStatus" class="status">—</span></div>
+    <div class="judge-grid">
+      <div class="judge-stat"><small>Verdict</small><strong id="judgeVerdict">—</strong></div>
+      <div class="judge-stat"><small>Submission ID</small><strong id="submissionId">—</strong></div>
+      <div class="judge-stat"><small>Language</small><strong id="submissionLanguage">—</strong></div>
+    </div>
+  </section>
 </div>
-
-
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-></script>
-
+</main>
+</div>
+<div id="appToast" class="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 <script src="app.js"></script>
-
 </body>
 </html>

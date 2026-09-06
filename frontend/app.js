@@ -18,16 +18,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  if (document.body.innerText.includes("Your Progress")) {
+  /*
+   * Route by a unique element on each page rather than
+   * matching text that also appears in the shared sidebar
+   * (e.g. every page's nav contains the word "Problems").
+   */
+
+  if (document.getElementById("progressList")) {
     await loadProgress();
   }
 
-  if (document.body.innerText.includes("Profile")) {
+  if (document.getElementById("savedSummaries")) {
     await loadProfile();
-  }
-
-  if (document.body.innerText.includes("Problems")) {
-    await loadProblemPage();
   }
 });
 
@@ -202,13 +204,11 @@ function renderSession(data) {
 
   const skill = data?.skill || {};
 
-  const topic = data?.topic || {};
-
   const userName = user.name || "Student";
 
   const level = user.level || "Beginner";
 
-  const topicName = topic.name || task.topic || data.topic_name || "DSA";
+  const topicName = getTopicName(data);
   setText("userName", userName);
   setText("welcomeName", userName);
   setText("userLevel", level);
@@ -268,13 +268,52 @@ function renderSession(data) {
 }
 
 
-function getTopicSummary(data) {
+/*
+ * The LangGraph agent state has used a few different
+ * field names over time (old vs. new graph versions).
+ * These helpers read from every known shape so the
+ * frontend keeps working no matter which backend
+ * version is running.
+ */
 
+function getTopicObject(data) {
+  const topic = data?.topic;
+  return typeof topic === "object" && topic !== null ? topic : {};
+}
+
+function getTopicName(data) {
+  const topic = getTopicObject(data);
+  const task = data?.task || {};
+
+  return (
+    topic.name ||
+    data?.current_topic ||
+    (typeof data?.topic === "string" ? data.topic : null) ||
+    task.topic ||
+    data?.topic_name ||
+    "DSA"
+  );
+}
+
+function getTopicId(data) {
+  const topic = getTopicObject(data);
+
+  return (
+    topic.id ??
+    data?.current_topic_id ??
+    data?.roadmap_topic_id ??
+    null
+  );
+}
+
+function getTopicSummary(data) {
+  const topic = getTopicObject(data);
 
   return (
     data?.topic_summary ||
+    data?.lesson ||
+    topic.summary ||
     data?.summary ||
-    data?.topic?.summary ||
     data?.current_topic_summary ||
     data?.lesson_summary ||
     null
@@ -324,13 +363,9 @@ async function saveTopicSummary(data, summary) {
    */
 
   try {
-    const topic = data?.topic || {};
+    const topicName = getTopicName(data);
 
-    const task = data?.task || {};
-
-    const topicName = topic.name || task.topic || data.topic_name || "DSA";
-
-    const topicId = topic.id || data.roadmap_topic_id || null;
+    const topicId = getTopicId(data);
 
     const response = await fetch(`${API_BASE}/topic-summary`, {
       method: "POST",
@@ -389,7 +424,7 @@ async function checkCodeforcesSubmission(){
   try {
     const response = await fetch(
       `${API_BASE}/agent/session/`+
-      `${encodeURIComponent(threadId)}`+
+      `${encodeURIComponent(thread_id)}`+
       `/check-submission`,
       {
         method: "POST",
@@ -400,14 +435,14 @@ async function checkCodeforcesSubmission(){
       }
     )
 
-    res = await readResponse(response);
-    console.log("CODEFORCES CHECK:", res);
-    renderCodeforcesResult(res);
-    if(res.judge_result?.accepted){
+    const result = await readResponse(response);
+    console.log("CODEFORCES CHECK:", result);
+    renderCodeforcesResult(result);
+    if(result.judge_result?.accepted){
       showToast("Accepted AI is evaluating your solution")
       setTimeout(loadSession, 1000);
-    }else if (res.judge_result?.found){
-      showToast(`Submission found : ${res.judge_result.verdict}`);
+    }else if (result.judge_result?.found){
+      showToast(`Submission found : ${result.judge_result.verdict}`);
     }else{
       showToast("No submission found yet");
     }
@@ -540,12 +575,24 @@ function renderProblem(task) {
     }
   }
 
-  const problemSummary = document.getElementById("problemSummary");
+  /*
+   * Codeforces page has its own
+   * "Solve on Codeforces" link -
+   * point it at the real problem URL.
+   */
 
-  if (problemSummary) {
-    const summary = getTopicSummary(session);
+  const cfLink = document.getElementById("solveOnCodeforcesBtn");
 
-    problemSummary.textContent = summary || "No topic summary available.";
+  if (cfLink) {
+    if (task.url) {
+      cfLink.href = task.url;
+
+      cfLink.classList.remove("disabled");
+    } else {
+      cfLink.href = "#";
+
+      cfLink.classList.add("disabled");
+    }
   }
 }
 
@@ -886,34 +933,6 @@ async function loadSavedSummaries() {
     container.innerHTML = `<p class="text-secondary">
                 Could not load saved summaries.
             </p>`;
-  }
-}
-
-async function loadProblemPage() {
-  const threadId = localStorage.getItem("dsa_thread_id");
-
-  if (!threadId) {
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `${API_BASE}/agent/session/` + `${encodeURIComponent(threadId)}/current`,
-    );
-
-    session = await readResponse(response);
-
-    renderSession(session);
-
-    const task = session.task || {};
-
-    setText("problemTopicName", session?.topic?.name || task.topic || "DSA");
-
-    const summary = getTopicSummary(session);
-
-    setText("problemSummary", summary || "No topic summary available.");
-  } catch (error) {
-    console.error("PROBLEM PAGE ERROR:", error);
   }
 }
 

@@ -48,9 +48,20 @@ def get_current_session(thread_id: str):
         "user":values.get("user"),
         "skill":values.get("skill"),
         "topic":{
-            "name":values.get("topic"),
-            "summary":values.get("topic_summary"),
+            "id": values.get("current_topic_id"),
+            "name": (
+                values.get("current_topic")
+                or values.get("topic")
+            ),
+            "summary": (
+                values.get("topic_summary")
+                or values.get("lesson")
+            ),
         },
+        "topic_summary": (
+            values.get("topic_summary")
+            or values.get("lesson")
+        ),
         "task":values.get("current_problem"),
         "next_action":values.get("next_action"),
     }

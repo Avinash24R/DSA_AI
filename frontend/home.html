@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learning Home · DSA AI Tutor</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-icon"><i class="bi bi-cpu"></i></div><span>DSA <strong>AI Tutor</strong></span></div>
+  <nav class="nav"><a class="nav-item active" href="index.html"><i class="bi bi-house"></i><span>Home</span></a>
+<a class="nav-item " href="problem.html"><i class="bi bi-code-square"></i><span>Problem</span></a>
+<a class="nav-item " href="progress.html"><i class="bi bi-graph-up"></i><span>Progress</span></a>
+<a class="nav-item " href="user.html"><i class="bi bi-person"></i><span>Profile</span></a></nav>
+  <div class="sidebar-footer"><a class="reset-link" href="#" data-reset-session><i class="bi bi-arrow-counterclockwise"></i> Reset local session</a></div>
+</aside>
+<main class="main">
+<header class="topbar">
+  <div class="topbar-title"><small>DSA AI Tutor</small><h1>Learning Home</h1></div>
+  <div class="user-mini"><div class="avatar" id="avatarLetter">S</div><div><strong id="userName">Student</strong><small id="userLevel">Beginner</small></div></div>
+</header>
+
+<div class="content">
+  <section class="card hero">
+    <div>
+      <div class="eyebrow">Personalized learning session</div>
+      <h1>Learn the pattern. Then prove it.</h1>
+      <p id="homeIntro">The AI agent is loading your current topic and problem.</p>
+      <div class="action-row">
+        <a class="btn btn-primary" href="problem.html"><i class="bi bi-code-square"></i> Go to problem</a>
+        <a class="btn btn-outline" href="progress.html"><i class="bi bi-graph-up"></i> View progress</a>
+      </div>
+    </div>
+    <i class="bi bi-robot hero-icon"></i>
+  </section>
+
+  <section class="grid grid-4 section-gap">
+    <div class="card"><span class="stat-label">Current topic</span><div class="stat-value" id="topicName">—</div></div>
+    <div class="card"><span class="stat-label">Skill score</span><div class="stat-value" id="homeSkill">0</div><span class="stat-note">from your learning profile</span></div>
+    <div class="card"><span class="stat-label">Problems solved</span><div class="stat-value" id="homeSolved">0</div></div>
+    <div class="card"><span class="stat-label">Accuracy</span><div class="stat-value" id="homeAccuracy">0%</div></div>
+  </section>
+
+  <section class="card section-gap">
+    <div class="card-header">
+      <div><div class="eyebrow">Agent workflow</div><h2>What the tutor is doing</h2><p>The session follows a fixed learning loop.</p></div>
+      <span id="agentStatusBadge" class="status">Loading</span>
+    </div>
+    <div class="flow">
+      <div id="agentStepTopic" class="flow-step active"><div class="num">1</div><strong>Choose topic</strong><small>AI selects the next topic from your roadmap and progress.</small></div>
+      <div id="agentStepSummary" class="flow-step"><div class="num">2</div><strong>Study the note</strong><small>Read the generated README-style lesson before solving.</small></div>
+      <div id="agentStepProblem" class="flow-step"><div class="num">3</div><strong>Solve the problem</strong><small>Open Codeforces, submit, then return to verify.</small></div>
+    </div>
+  </section>
+
+  <section class="card section-gap">
+    <div class="card-header">
+      <div><div class="eyebrow">AI lesson</div><h2 id="summaryTitle">Current topic</h2><p>Formatted as a readable study note instead of raw markdown text.</p></div>
+      <div class="icon-box"><i class="bi bi-journal-text"></i></div>
+    </div>
+    <div id="topicSummary" class="markdown-body"><div class="loading">Waiting for the AI lesson…</div></div>
+    <div class="action-row">
+      <a class="btn btn-primary" href="problem.html"><i class="bi bi-arrow-right"></i> Continue to problem</a>
+      <span id="summarySaved" class="note">Not saved yet</span>
+    </div>
+  </section>
+
+  <section class="card section-gap">
+    <div class="card-header">
+      <div><div class="eyebrow">Next task</div><h2 id="taskTitle">Problem</h2><p id="taskTopic">—</p></div>
+      <span id="difficultyBadge" class="badge easy">Easy</span>
+    </div>
+    <div class="problem-meta">
+      <span class="meta"><i class="bi bi-clock"></i> <span id="estimatedTime">—</span></span>
+      <span class="meta"><i class="bi bi-repeat"></i> <span id="attemptText">First attempt</span></span>
+    </div>
+    <div id="homeProblemDescription" class="markdown-body"><div class="loading">Problem details will appear here.</div></div>
+    <div class="action-row"><a id="problemUrl" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Open Codeforces problem</a></div>
+  </section>
+</div>
+</main>
+</div>
+<div id="appToast" class="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
