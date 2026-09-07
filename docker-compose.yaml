@@ -41,7 +41,7 @@ services:
     volumes:
       - ./scripts:/app/scripts
       - ./db:/app/db
-      - ./requirements.txt:/app/requirements.txt
+      - ./requirements-seeder.txt:/app/requirements-seeder.txt
     environment:
       POSTGRES_DB: DSA_agent
       POSTGRES_USER: coolUser
@@ -53,7 +53,7 @@ services:
         condition: service_healthy
     command: >
       sh -c "
-      pip install --no-cache-dir -r requirements.txt &&
+      pip install --no-cache-dir -r requirements-seeder.txt &&
       python scripts/setup.py
       "
   frontend:
