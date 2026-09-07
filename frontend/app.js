@@ -8,77 +8,127 @@ document.addEventListener("DOMContentLoaded", async () => {
   const userId = localStorage.getItem("dsa_user_id");
   const threadId = localStorage.getItem("dsa_thread_id");
 
+  /*
+   * index.html: onboarding form OR a
+   * "welcome back" card if a session
+   * already exists in this browser.
+   */
+
   const onboarding = document.getElementById("onboarding");
+
   if (onboarding) {
     if (userId && threadId) {
-      hideOnboarding();
-      await loadSession();
+      await showExistingSession();
     } else {
       showOnboarding();
     }
+    return;
+  }
+
+  /*
+   * Every other page needs a session.
+   * Bounce back to the start form if
+   * one hasn't been created yet.
+   */
+
+  if (!userId || !threadId) {
+    window.location.href = "index.html";
+    return;
   }
 
   /*
    * Route by a unique element on each page rather than
-   * matching text that also appears in the shared sidebar
-   * (e.g. every page's nav contains the word "Problems").
+   * matching text that also appears in the shared sidebar.
    */
 
+  await loadSession();
+
   if (document.getElementById("progressList")) {
-    await loadProgress();
+    await loadProgressPage();
   }
 
-  if (document.getElementById("savedSummaries")) {
-    await loadProfile();
+  if (document.getElementById("profileRoadmapList")) {
+    await loadProfilePage();
+  }
+
+  if (document.getElementById("solvedProblemsList")) {
+    await loadSolvedProblems();
   }
 });
 
 function bindEvents() {
-  const startButton = document.getElementById("startLearningBtn");
-  if (startButton) startButton.addEventListener("click", createUserAndSession);
-
-  const continueButton = document.getElementById("continueProblemBtn");
-  if (continueButton) continueButton.addEventListener("click", showProblem);
-
-  const saveDraftButton = document.getElementById("saveDraftBtn");
-  if (saveDraftButton) saveDraftButton.addEventListener("click", saveDraft);
-
-  const checkSubmissionButton =
-    document.getElementById(
-        "checkSubmissionBtn"
-    );
-
-  if (checkSubmissionButton) {
-      checkSubmissionButton.addEventListener("click",checkCodeforcesSubmission);
-  }
-  const code = document.getElementById("solutionCode");
-  if (code) {
-    restoreDraft();
-    code.addEventListener("input", () => {
-      localStorage.setItem(getDraftKey(), code.value);
+  const startForm = document.getElementById("startForm");
+  if (startForm) {
+    startForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      createUserAndSession();
     });
   }
+
+  document.querySelectorAll("[data-reset-session]").forEach((el) => {
+    el.addEventListener("click", (event) => {
+      event.preventDefault();
+      resetSession();
+    });
+  });
+
+  const checkSubmissionButton = document.getElementById("checkSubmissionBtn");
+  if (checkSubmissionButton) {
+    checkSubmissionButton.addEventListener("click", checkCodeforcesSubmission);
+  }
+}
+
+function resetSession() {
+  localStorage.removeItem("dsa_user_id");
+  localStorage.removeItem("dsa_thread_id");
+  window.location.href = "index.html";
 }
 
 function showOnboarding() {
   const onboarding = document.getElementById("onboarding");
-  const application = document.getElementById("application");
-  if (onboarding) onboarding.classList.remove("d-none");
-  if (application) application.classList.add("d-none");
+  const existing = document.getElementById("existingSession");
+  if (onboarding) onboarding.style.display = "";
+  if (existing) existing.style.display = "none";
 }
 
-function hideOnboarding() {
+async function showExistingSession() {
   const onboarding = document.getElementById("onboarding");
-  const application = document.getElementById("application");
-  if (onboarding) onboarding.classList.add("d-none");
-  if (application) application.classList.remove("d-none");
+  const existing = document.getElementById("existingSession");
+  if (onboarding) onboarding.style.display = "none";
+  if (existing) existing.style.display = "";
+
+  const threadId = localStorage.getItem("dsa_thread_id");
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/current`,
+    );
+    const data = await readResponse(response);
+
+    const userName = data?.user?.name || "there";
+    const topicName = getTopicName(data);
+
+    setText(
+      "existingSessionText",
+      `Welcome back, ${userName}. You're currently learning ${topicName}.`,
+    );
+  } catch (error) {
+    console.error("EXISTING SESSION ERROR:", error);
+    setText(
+      "existingSessionText",
+      "Your learning session is ready.",
+    );
+  }
 }
 
 async function createUserAndSession() {
   const name = document.getElementById("onboardingName")?.value.trim();
   const email = document.getElementById("onboardingEmail")?.value.trim();
   const level = document.getElementById("onboardingLevel")?.value;
-  const codeforcesHandle = document.getElementById("onboardingCodeforces")?.value.trim();
+  const codeforcesHandle = document
+    .getElementById("onboardingCodeforces")
+    ?.value.trim();
+
   if (!name) {
     showToast("Please enter your name.");
     return;
@@ -86,31 +136,29 @@ async function createUserAndSession() {
 
   if (!email) {
     showToast("Please enter your email.");
-
     return;
   }
+
   if (!codeforcesHandle) {
-      showToast("Please enter your Codeforces handle.");
-      return;
+    showToast("Please enter your Codeforces handle.");
+    return;
   }
 
   const button = document.getElementById("startLearningBtn");
-  button.disabled = true;
-  button.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Starting AI Agent...`;
+  const originalContent = button?.innerHTML;
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner">↻</span> Starting AI agent…`;
+  }
 
   try {
-
     const userResponse = await fetch(`${API_BASE}/users`, {
       method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: name,
-        email: email,
-        level: level,
+        name,
+        email,
+        level,
         codeforces_handle: codeforcesHandle,
       }),
     });
@@ -122,10 +170,6 @@ async function createUserAndSession() {
     }
 
     localStorage.setItem("dsa_user_id", String(user.user_id));
-
-    /*
-     * 2. Start agent
-     */
 
     const sessionResponse = await fetch(`${API_BASE}/agent/session/start`, {
       method: "POST",
@@ -139,33 +183,32 @@ async function createUserAndSession() {
     }
 
     localStorage.setItem("dsa_thread_id", sessionData.thread_id);
-    hideOnboarding();
 
-    /*
-     * 3. Load actual agent state
-     */
-
-    await loadSession();
+    window.location.href = "home.html";
   } catch (error) {
     console.error("START AGENT ERROR:", error);
-
     showToast(error.message);
   } finally {
-    button.disabled = false;
-
-    button.innerHTML = `<i class="bi bi-play-fill"></i>
-             Start Learning`;
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = originalContent;
+    }
   }
 }
+
+/* =========================================================
+   SESSION
+========================================================= */
 
 async function loadSession() {
   const threadId = localStorage.getItem("dsa_thread_id");
 
   if (!threadId) {
-    showOnboarding();
+    window.location.href = "index.html";
     return;
   }
-  setAgentStatus("Loading AI session...");
+
+  setAgentStatus("Loading AI session…");
 
   try {
     const response = await fetch(
@@ -177,7 +220,6 @@ async function loadSession() {
 
     renderSession(session);
 
-
     const summary = getTopicSummary(session);
 
     if (summary) {
@@ -185,96 +227,74 @@ async function loadSession() {
       await saveTopicSummary(session, summary);
     }
 
-
     if (isProblemReady(session)) markProblemReady();
-    else setAgentStatus("Agent is preparing your lesson...");
+    else setAgentStatus("Agent is preparing your lesson…");
   } catch (error) {
     console.error("SESSION ERROR:", error);
-
     setAgentStatus("Agent session unavailable");
-
     showToast(error.message);
   }
 }
 
 function renderSession(data) {
   const user = data?.user || {};
-
   const task = data?.task || {};
-
   const skill = data?.skill || {};
 
   const userName = user.name || "Student";
-
   const level = user.level || "Beginner";
-
   const topicName = getTopicName(data);
+
+  /* Shared topbar (home / problem / progress / user pages) */
   setText("userName", userName);
-  setText("welcomeName", userName);
   setText("userLevel", level);
-  setText("topicName", topicName);
-  setText("subtopicName", task.subtopic || "Learning");
-  setText("xp", user.xp ?? 0);
-  setText("accuracy", `${user.accuracy ?? skill.accuracy ?? 0}%`);
-  setText("profileCodeforces",user.codeforces_handle || "-");
+
   const avatar = document.getElementById("avatarLetter");
+  if (avatar) avatar.textContent = userName.charAt(0).toUpperCase();
 
-  if (avatar) {
-    avatar.textContent = userName.charAt(0).toUpperCase();
-  }
+  /* Home page */
+  setText("topicName", topicName);
+  setText("homeSkill", skill.score ?? 0);
+  setText("homeSolved", skill.solved ?? 0);
+  setText("homeAccuracy", `${skill.accuracy ?? 0}%`);
 
-  const cfHandle =
-    user.codeforces_handle;
-
-  const cfElement =
-      document.getElementById(
-          "profileCodeforces"
-      );
-  if (cfElement && cfHandle) {
-      cfElement.innerHTML = `
-          <a
-              href="https://codeforces.com/profile/${encodeURIComponent(cfHandle)}"
-              target="_blank"
-              rel="noopener noreferrer"
-          >
-              ${escapeHtml(cfHandle)}
-          </a>
-      `;
+  const homeIntro = document.getElementById("homeIntro");
+  if (homeIntro) {
+    homeIntro.textContent = isProblemReady(data)
+      ? `Your next assignment on ${topicName} is ready.`
+      : `The AI agent is preparing your ${topicName} lesson.`;
   }
 
   renderProblem(task);
 
-  /*
-   * Profile page
-   */
-
+  /* Profile page header */
   setText("profileName", userName);
-
-  setText("profileEmail", user.email || "student@example.com");
-
+  setText("profileEmail", user.email || "—");
   setText("profileLevel", level);
-
-  setText("profileXp", user.xp ?? 0);
-
-  setText("profileAccuracy", `${user.accuracy ?? skill.accuracy ?? 0}%`);
-
-  setText("profileStreak", user.streak ?? 0);
+  setText("profileCurrentTopic", topicName);
+  setText("profileSkillScore", skill.score ?? 0);
+  setText("profileSolved", skill.solved ?? 0);
+  setText(
+    "profileAccuracyNote",
+    `${skill.accuracy ?? 0}% accuracy over ${skill.attempts ?? 0} attempts`,
+  );
 
   const profileAvatar = document.getElementById("profileAvatar");
+  if (profileAvatar) profileAvatar.textContent = userName.charAt(0).toUpperCase();
 
-  if (profileAvatar) {
-    profileAvatar.textContent = userName.charAt(0).toUpperCase();
+  const cfHandle = user.codeforces_handle;
+  const cfElement = document.getElementById("profileCodeforces");
+  if (cfElement) {
+    if (cfHandle) {
+      cfElement.innerHTML = `<a href="https://codeforces.com/profile/${encodeURIComponent(
+        cfHandle,
+      )}" target="_blank" rel="noopener noreferrer">${escapeHtml(cfHandle)}</a>`;
+    } else {
+      cfElement.textContent = "—";
+    }
   }
 }
 
-
-/*
- * The LangGraph agent state has used a few different
- * field names over time (old vs. new graph versions).
- * These helpers read from every known shape so the
- * frontend keeps working no matter which backend
- * version is running.
- */
 
 function getTopicObject(data) {
   const topic = data?.topic;
@@ -297,13 +317,7 @@ function getTopicName(data) {
 
 function getTopicId(data) {
   const topic = getTopicObject(data);
-
-  return (
-    topic.id ??
-    data?.current_topic_id ??
-    data?.roadmap_topic_id ??
-    null
-  );
+  return topic.id ?? data?.current_topic_id ?? data?.roadmap_topic_id ?? null;
 }
 
 function getTopicSummary(data) {
@@ -321,569 +335,347 @@ function getTopicSummary(data) {
 }
 
 function renderTopicSummary(summary) {
-  const card = document.getElementById("summaryCard");
+  const text = typeof summary === "string" ? summary : JSON.stringify(summary, null, 2);
 
-  const summaryElement = document.getElementById("topicSummary");
-
-  if (!summaryElement) {
-    return;
-  }
-
-  if (typeof summary === "object") {
-    summaryElement.textContent = JSON.stringify(summary, null, 2);
-  } else {
-    summaryElement.textContent = summary;
-  }
-
-  if (card) {
-    card.classList.remove("d-none");
-  }
+  renderMarkdown("topicSummary", text, "Waiting for the AI lesson…");
 
   const step = document.getElementById("agentStepSummary");
+  if (step) step.classList.add("active");
 
-  if (step) {
-    step.classList.add("active");
-  }
-
-  setText("summarySaved", "AI summary generated");
+  setText("summarySaved", "AI lesson generated");
 }
 
 async function saveTopicSummary(data, summary) {
   const userId = localStorage.getItem("dsa_user_id");
 
-  if (!userId || !summary) {
-    return;
-  }
-
-  /*
-   * This endpoint must be added
-   * to the backend:
-   *
-   * POST /api/topic-summary
-   */
+  if (!userId || !summary) return;
 
   try {
     const topicName = getTopicName(data);
-
     const topicId = getTopicId(data);
 
     const response = await fetch(`${API_BASE}/topic-summary`, {
       method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         user_id: Number(userId),
-
         roadmap_topic_id: topicId,
-
         topic_name: topicName,
-
-        summary:
-          typeof summary === "string" ? summary : JSON.stringify(summary),
+        summary: typeof summary === "string" ? summary : JSON.stringify(summary),
       }),
     });
 
-    /*
-     * If endpoint hasn't been added yet,
-     * don't break the learning UI.
-     */
-
     if (response.status === 404) {
-      setText("summarySaved", "Summary ready");
-
+      setText("summarySaved", "Lesson ready (not saved — endpoint missing)");
       return;
     }
 
     await readResponse(response);
-
     setText("summarySaved", "Saved to your learning history");
   } catch (error) {
     console.error("SUMMARY SAVE ERROR:", error);
-
-    setText("summarySaved", "Summary generated");
+    setText("summarySaved", "Lesson generated");
   }
 }
-async function checkCodeforcesSubmission(){
-  const thread_id= localStorage.getItem("dsa_thread_id")
-  if (!thread_id){
-    showToast("No active agent session")
-    return
-  }
-  const button = document.getElementById("checkSubmissionBtn");
-  if (button){
-    button.disabled = true;
-    button.innerHTML = `
-      <span class="spinner-border spinner-border-sm">
-      </span>
-      Checking...
-    `;
-  }
-  try {
-    const response = await fetch(
-      `${API_BASE}/agent/session/`+
-      `${encodeURIComponent(thread_id)}`+
-      `/check-submission`,
-      {
-        method: "POST",
-        headers: {
-            "Content-Type":
-                "application/json"
-        }
-      }
-    )
 
-    const result = await readResponse(response);
-    console.log("CODEFORCES CHECK:", result);
-    renderCodeforcesResult(result);
-    if(result.judge_result?.accepted){
-      showToast("Accepted AI is evaluating your solution")
-      setTimeout(loadSession, 1000);
-    }else if (result.judge_result?.found){
-      showToast(`Submission found : ${result.judge_result.verdict}`);
-    }else{
-      showToast("No submission found yet");
-    }
 
-  }catch(error){
-    console.error(
-        "CODEFORCES CHECK ERROR:",
-        error
-    );
-    showToast(
-        error.message ||
-        "Could not check Codeforces submission."
-    );
-  }finally{
-    if (button) {
-      button.disabled = false;
-      button.innerHTML = `
-          <i class="bi bi-arrow-repeat"></i>
-          Check Submission
-      `;
-    }
-  }
-}
-function renderCodeforcesResult(result) {
-    const judge =
-        result?.judge_result || {};
-    const card =
-        document.getElementById(
-            "judgeCard"
-        );
-    if (card) {
-        card.classList.remove(
-            "d-none"
-        );
-    }
-    setText(
-        "judgeStatus",
-        judge.found
-            ? (
-                judge.verdict ||
-                "UNKNOWN"
-              )
-            : "NOT SUBMITTED"
-    );
-    setText(
-        "runtime",
-        "-"
-    );
-    setText(
-        "memory",
-        "-"
-    );
-    setText(
-        "tests",
-        "-"
-    );
-    const errorElement =
-        document.getElementById(
-            "judgeError"
-        );
-    if (errorElement) {
-        if (!judge.found) {
-            errorElement.textContent =
-                "No submission found for this problem yet.";
-            errorElement.classList.remove(
-                "d-none"
-            );
-        } else {
-            errorElement.textContent =
-                `Codeforces verdict: ${
-                    judge.verdict
-                }`;
-
-            errorElement.classList.remove(
-                "d-none"
-            );
-        }
-    }
-}
 function isProblemReady(data) {
   const task = data?.task || {};
-
-  return Boolean(task.title || task.problem_id || task.current_problem_id);
+  return Boolean(task.title || task.problem_id || task.id);
 }
 
 function renderProblem(task) {
-  if (!task) {
-    return;
-  }
+  if (!task) return;
 
   setText("taskTitle", task.title || "Problem");
-
   setText("taskTopic", task.subtopic || task.topic || "DSA");
-
   setText(
     "estimatedTime",
-    task.estimated_minutes ? `${task.estimated_minutes} min` : "-",
+    task.estimated_minutes ? `${task.estimated_minutes} min` : "—",
   );
-
   setText("attemptText", getAttemptText(task.attempt_number));
 
   const difficulty = task.difficulty || "Easy";
-
   const badge = document.getElementById("difficultyBadge");
-
   if (badge) {
     badge.textContent = difficulty;
-
-    badge.className = `difficulty ${difficulty.toLowerCase()}`;
+    badge.className = `badge ${difficulty.toLowerCase()}`;
   }
 
-  const description = document.getElementById("problemDescription");
-
-  if (description) {
-    description.textContent =
-      task.description || "Open the problem to see the full statement.";
-  }
+  renderMarkdown(
+    "problemDescription",
+    task.description,
+    "Open the problem to see the full statement.",
+  );
+  renderMarkdown(
+    "homeProblemDescription",
+    task.description,
+    "Problem details will appear here.",
+  );
 
   const url = document.getElementById("problemUrl");
-
   if (url) {
-    if (task.url) {
-      url.href = task.url;
-
-      url.classList.remove("disabled");
-    } else {
-      url.href = "#";
-
-      url.classList.add("disabled");
-    }
+    url.href = task.url || "#";
+    url.classList.toggle("disabled", !task.url);
   }
-
-  /*
-   * Codeforces page has its own
-   * "Solve on Codeforces" link -
-   * point it at the real problem URL.
-   */
 
   const cfLink = document.getElementById("solveOnCodeforcesBtn");
-
   if (cfLink) {
-    if (task.url) {
-      cfLink.href = task.url;
-
-      cfLink.classList.remove("disabled");
-    } else {
-      cfLink.href = "#";
-
-      cfLink.classList.add("disabled");
-    }
+    cfLink.href = task.url || "#";
+    cfLink.classList.toggle("disabled", !task.url);
   }
-}
-
-function showProblem() {
-  const problemCard = document.getElementById("problemCard");
-
-  const editorCard = document.getElementById("editorCard");
-
-  if (problemCard) {
-    problemCard.classList.remove("d-none");
-  }
-
-  if (editorCard) {
-    editorCard.classList.remove("d-none");
-  }
-
-  const step = document.getElementById("agentStepProblem");
-
-  if (step) {
-    step.classList.add("active");
-  }
-
-  setAgentStatus("Ready to solve");
-
-  document.getElementById("problemCard")?.scrollIntoView({
-    behavior: "smooth",
-  });
 }
 
 function markProblemReady() {
   setAgentStatus("Topic ready");
-
-  const button = document.getElementById("continueProblemBtn");
-
-  if (button) {
-    button.disabled = false;
-  }
+  const step = document.getElementById("agentStepProblem");
+  if (step) step.classList.add("active");
 }
 
-/* =========================================================
-   SUBMISSION
-========================================================= */
+function getAttemptText(number) {
+  if (!number || number === 1) return "First attempt";
+  return `Attempt ${number}`;
+}
 
-async function submitSolution() {
+async function checkCodeforcesSubmission() {
   const threadId = localStorage.getItem("dsa_thread_id");
 
   if (!threadId) {
-    showToast("No active agent session.");
-
+    showToast("No active agent session");
     return;
   }
 
-  const code = document.getElementById("solutionCode")?.value.trim();
-
-  const language = document.getElementById("language")?.value || "cpp";
-
-  if (!code) {
-    showToast("Write your solution first.");
-
-    return;
+  const button = document.getElementById("checkSubmissionBtn");
+  const originalContent = button?.innerHTML;
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner">↻</span> Checking…`;
   }
-
-  const button = document.getElementById("submitBtn");
-
-  button.disabled = true;
-
-  button.innerHTML = `<span class="spinner-border spinner-border-sm"></span>
-         Judging...`;
 
   try {
-    /*
-     * IMPORTANT:
-     *
-     * This matches the real backend:
-     *
-     * POST
-     * /api/agent/session/{thread_id}/submit
-     */
-
     const response = await fetch(
-      `${API_BASE}/agent/session/` + `${encodeURIComponent(threadId)}/submit`,
+      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/check-submission`,
       {
         method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          language,
-          code,
-        }),
+        headers: { "Content-Type": "application/json" },
       },
     );
 
     const result = await readResponse(response);
+    console.log("CODEFORCES CHECK:", result);
+    renderCodeforcesResult(result);
 
-    console.log("SUBMISSION:", result);
-
-    renderJudgeResult(result);
-
-    /*
-     * Refresh agent state after
-     * accepted submission.
-     */
-
-    if (result.status === "accepted") {
-      showToast("Accepted. Agent is evaluating your progress.");
-
+    if (result.judge_result?.accepted) {
+      showToast("Accepted! The AI is evaluating your progress.");
       setTimeout(loadSession, 1000);
+    } else if (result.judge_result?.found) {
+      showToast(`Submission found: ${result.judge_result.verdict}`);
+    } else {
+      showToast("No submission found yet.");
     }
   } catch (error) {
-    console.error("SUBMISSION ERROR:", error);
-
-    showToast(error.message);
+    console.error("CODEFORCES CHECK ERROR:", error);
+    showToast(error.message || "Could not check Codeforces submission.");
   } finally {
-    button.disabled = false;
-
-    button.innerHTML = `<i class="bi bi-send"></i>
-             Submit Solution`;
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = originalContent;
+    }
   }
 }
 
-/* =========================================================
-   JUDGE RESULT
-========================================================= */
-
-function renderJudgeResult(result) {
-  const judge = result?.judge_result || result?.judge || {};
+function renderCodeforcesResult(result) {
+  const judge = result?.judge_result || {};
 
   const card = document.getElementById("judgeCard");
+  if (card) card.style.display = "";
 
-  if (card) {
-    card.classList.remove("d-none");
-  }
-
-  setText("judgeStatus", formatStatus(result.status || judge.status));
-
-  setText("runtime", judge.runtime_ms != null ? `${judge.runtime_ms} ms` : "-");
-
-  setText("memory", judge.memory_kb != null ? `${judge.memory_kb} KB` : "-");
+  setText("judgeStatus", judge.found ? judge.verdict || "UNKNOWN" : "NOT SUBMITTED");
+  setText("judgeVerdict", judge.verdict || "—");
+  setText("submissionId", judge.submission_id ?? "—");
+  setText("submissionLanguage", judge.language || "—");
 
   setText(
-    "tests",
-    judge.tests_passed != null
-      ? `${judge.tests_passed}/${judge.tests_total}`
-      : "-",
+    "judgeError",
+    judge.found
+      ? `Codeforces verdict: ${judge.verdict}`
+      : "No submission found for this problem yet.",
   );
+}
 
-  const error = judge.error || "";
 
-  const errorElement = document.getElementById("judgeError");
+async function loadProgressPage() {
+  const userId = localStorage.getItem("dsa_user_id");
+  if (!userId) return;
 
-  if (errorElement) {
-    if (error) {
-      errorElement.textContent = error;
+  try {
+    const data = await loadDashboard(userId);
+    const agg = computeSkillAggregate(data.skill_profile);
 
-      errorElement.classList.remove("d-none");
-    } else {
-      errorElement.classList.add("d-none");
+    setText("skillScore", agg.score);
+    setText("solved", agg.solved);
+    setText("attempts", agg.attempts);
+    setText("metricAccuracy", `${agg.accuracy}%`);
+
+    renderTopicProgressList("progressList", data.skill_profile);
+  } catch (error) {
+    console.error("PROGRESS ERROR:", error);
+    showToast(error.message);
+  }
+
+  await loadSavedSummaries("progressSummaries");
+}
+
+function computeSkillAggregate(skillProfile) {
+  const topics = Array.isArray(skillProfile) ? skillProfile : [];
+
+  const solved = topics.reduce((sum, t) => sum + (t.problems_solved || 0), 0);
+  const attempts = topics.reduce((sum, t) => sum + (t.problems_attempted || 0), 0);
+
+  const attempted = topics.filter((t) => (t.problems_attempted || 0) > 0);
+  const score = attempted.length
+    ? Math.round(
+        (attempted.reduce((sum, t) => sum + Number(t.skill_score || 0), 0) /
+          attempted.length) *
+          10,
+      ) / 10
+    : 0;
+
+  const accuracy = attempts ? Math.round((solved / attempts) * 1000) / 10 : 0;
+
+  return { score, solved, attempts, accuracy };
+}
+
+function renderTopicProgressList(containerId, skillProfile) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const topics = Array.isArray(skillProfile) ? skillProfile : [];
+
+  if (!topics.length) {
+    container.innerHTML = `<div class="empty-state">Your roadmap will appear here once topics are configured.</div>`;
+    return;
+  }
+
+  container.innerHTML = topics
+    .map((topic) => {
+      const name = topic.topic_name || topic.name || "Topic";
+      const score = Number(topic.skill_score || 0);
+      const solved = topic.problems_solved || 0;
+      const attempted = topic.problems_attempted || 0;
+      const started = attempted > 0;
+
+      return `
+        <div class="topic-row ${started ? "" : "not-started"}">
+          <div class="topic-row-info">
+            <strong>${escapeHtml(name)}</strong>
+            <small>${
+              started
+                ? `${solved}/${attempted} problems solved`
+                : "Not started yet"
+            }</small>
+          </div>
+          <div class="topic-row-bar">
+            <div class="track"><div class="fill" style="width:${Math.min(
+              score,
+              100,
+            )}%"></div></div>
+            <small>Skill score</small>
+          </div>
+          <div class="topic-row-score">
+            <strong>${started ? score.toFixed(0) : "—"}</strong>
+            <small>/ 100</small>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function loadProfilePage() {
+  const userId = localStorage.getItem("dsa_user_id");
+  if (!userId) return;
+
+  try {
+    const data = await loadDashboard(userId);
+    renderTopicProgressList("profileRoadmapList", data.skill_profile);
+  } catch (error) {
+    console.error("PROFILE ROADMAP ERROR:", error);
+    const container = document.getElementById("profileRoadmapList");
+    if (container) {
+      container.innerHTML = `<div class="empty-state">Could not load your roadmap.</div>`;
     }
   }
+
+  await loadSavedSummaries("savedSummaries");
+}
+
+async function loadDashboard(userId) {
+  const response = await fetch(
+    `${API_BASE}/dashboard?user_id=${encodeURIComponent(userId)}`,
+  );
+  return readResponse(response);
 }
 
 /* =========================================================
-   PROGRESS
+   SOLVED PROBLEMS (problem.html history)
 ========================================================= */
 
-async function loadProgress() {
+async function loadSolvedProblems() {
   const userId = localStorage.getItem("dsa_user_id");
-
-  if (!userId) {
-    return;
-  }
+  const container = document.getElementById("solvedProblemsList");
+  if (!container || !userId) return;
 
   try {
-    const response = await fetch(
-      `${API_BASE}/progress?user_id=${encodeURIComponent(userId)}`,
-    );
+    const data = await loadDashboard(userId);
+    const attempts = Array.isArray(data.recent_attempts) ? data.recent_attempts : [];
 
-    const data = await readResponse(response);
-
-    const skill = data.skill_profile || {};
-
-    setText("skillScore", skill.score ?? skill.average_skill_score ?? 0);
-
-    setText("solved", skill.solved ?? 0);
-
-    setText("attempts", skill.attempts ?? 0);
-
-    setText("metricAccuracy", `${skill.accuracy ?? 0}%`);
-
-    renderProgressList(data.progress);
-  } catch (error) {
-    console.error("PROGRESS ERROR:", error);
-
-    showToast(error.message);
-  }
-}
-
-function renderProgressList(progress) {
-  const container = document.getElementById("progressList");
-
-  if (!container) {
-    return;
-  }
-
-  if (!progress) {
-    container.textContent = "No progress data yet.";
-
-    return;
-  }
-
-  /*
-   * Backend Tool may return either
-   * an array or an object.
-   */
-
-  if (Array.isArray(progress)) {
-    if (!progress.length) {
-      container.textContent = "No topic progress yet.";
-
+    if (!attempts.length) {
+      container.innerHTML = `<div class="empty-state">You haven't submitted any problems yet — solve today's assignment to start your history.</div>`;
       return;
     }
 
-    container.innerHTML = progress
-      .map((item) => {
-        const name = item.topic_name || item.name || "Topic";
-
-        const score = item.skill_score ?? item.score ?? 0;
+    container.innerHTML = attempts
+      .map((attempt) => {
+        const correct = Boolean(attempt.correct);
+        const title = attempt.problem_title || attempt.problem_id || "Problem";
+        const topicName = attempt.topic_name || "DSA";
+        const difficulty = attempt.difficulty || "—";
+        const score =
+          attempt.overall_score != null ? Math.round(attempt.overall_score) : null;
+        const date = formatDate(attempt.created_at);
 
         return `
-                        <div class="progress-row">
-
-                            <div>
-                                <strong>
-                                    ${escapeHtml(name)}
-                                </strong>
-
-                                <small>
-                                    Skill Score
-                                </small>
-                            </div>
-
-                            <strong>
-                                ${score}/100
-                            </strong>
-
-                        </div>
-                    `;
+          <div class="attempt-row">
+            <div class="attempt-row-icon ${correct ? "correct" : "incorrect"}">
+              <i class="bi ${correct ? "bi-check-lg" : "bi-x-lg"}"></i>
+            </div>
+            <div class="attempt-row-info">
+              <strong>${escapeHtml(title)}</strong>
+              <small>${escapeHtml(topicName)} · ${escapeHtml(
+                difficulty,
+              )} · ${escapeHtml(date)}</small>
+            </div>
+            <div class="attempt-row-score">
+              <strong>${score != null ? score : "—"}</strong>
+              <small>${score != null ? "/ 100" : correct ? "Solved" : "Attempted"}</small>
+            </div>
+          </div>
+        `;
       })
       .join("");
-
-    return;
+  } catch (error) {
+    console.error("SOLVED PROBLEMS ERROR:", error);
+    container.innerHTML = `<div class="empty-state">Could not load your problem history.</div>`;
   }
-
-  container.innerHTML = `<pre class="data-box">${escapeHtml(
-    JSON.stringify(progress, null, 2),
-  )}</pre>`;
 }
 
-/* =========================================================
-   PROFILE
-========================================================= */
 
-async function loadProfile() {
-  /*
-   * Current agent session already
-   * contains user information.
-   */
-
-  await loadSession();
-
-  /*
-   * Saved summaries require:
-   *
-   * GET /api/topic-summary?user_id=X
-   *
-   */
-
-  await loadSavedSummaries();
-}
-
-async function loadSavedSummaries() {
+async function loadSavedSummaries(containerId) {
   const userId = localStorage.getItem("dsa_user_id");
+  const container = document.getElementById(containerId);
 
-  const container = document.getElementById("savedSummaries");
-
-  if (!container || !userId) {
-    return;
-  }
+  if (!container || !userId) return;
 
   try {
     const response = await fetch(
@@ -891,99 +683,74 @@ async function loadSavedSummaries() {
     );
 
     if (response.status === 404) {
-      container.innerHTML = `<p class="text-secondary">
-                    Saved topic history will appear here.
-                </p>`;
-
+      container.innerHTML = `<div class="empty-state">Saved topic notes will appear here once the AI generates one.</div>`;
       return;
     }
 
     const data = await readResponse(response);
-
     const summaries = Array.isArray(data) ? data : data.summaries || [];
 
     if (!summaries.length) {
-      container.innerHTML = `<p class="text-secondary">
-                    No saved topic summaries yet.
-                </p>`;
-
+      container.innerHTML = `<div class="empty-state">No saved topic notes yet.</div>`;
       return;
     }
 
     container.innerHTML = summaries
-      .map((item) => {
-        return `
-                        <article class="saved-summary">
-
-                            <h4>
-                                ${escapeHtml(item.topic_name || "Topic")}
-                            </h4>
-
-                            <p>
-                                ${escapeHtml(item.summary || "")}
-                            </p>
-
-                        </article>
-                    `;
-      })
+      .map(
+        (item) => `
+          <article class="note-card">
+            <h4>${escapeHtml(item.topic_name || "Topic")}</h4>
+            <div class="markdown-body" data-raw="${escapeHtml(item.summary || "")}"></div>
+          </article>
+        `,
+      )
       .join("");
+
+    /* Render each note's markdown after insertion (safer than building huge HTML strings). */
+    container.querySelectorAll(".markdown-body[data-raw]").forEach((el) => {
+      const raw = el.getAttribute("data-raw") || "";
+      el.innerHTML = renderMarkdownString(raw);
+      el.removeAttribute("data-raw");
+    });
   } catch (error) {
     console.error("SUMMARY HISTORY ERROR:", error);
-
-    container.innerHTML = `<p class="text-secondary">
-                Could not load saved summaries.
-            </p>`;
+    container.innerHTML = `<div class="empty-state">Could not load saved notes.</div>`;
   }
 }
 
-/* =========================================================
-   DRAFT
-========================================================= */
 
-function getDraftKey() {
-  const problemId =
-    session?.task?.problem_id || session?.task?.current_problem_id || "current";
+function renderMarkdownString(text) {
+  if (!text) return "";
 
-  return `dsa_draft_${problemId}`;
+  if (window.marked && window.DOMPurify) {
+    const html = window.marked.parse(String(text));
+    return window.DOMPurify.sanitize(html);
+  }
+
+  return escapeHtml(String(text)).replaceAll("\n", "<br>");
 }
 
-function saveDraft() {
-  const code = document.getElementById("solutionCode")?.value || "";
+function renderMarkdown(elementId, text, placeholder) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
 
-  localStorage.setItem(getDraftKey(), code);
-
-  showToast("Draft saved.");
-}
-
-function restoreDraft() {
-  const code = document.getElementById("solutionCode");
-
-  if (!code) {
+  if (!text) {
+    el.innerHTML = `<div class="loading">${escapeHtml(placeholder || "Nothing here yet.")}</div>`;
     return;
   }
 
-  const draft = localStorage.getItem(getDraftKey());
-
-  if (draft) {
-    code.value = draft;
-  }
+  el.innerHTML = renderMarkdownString(text);
 }
 
-/* =========================================================
-   HELPERS
-========================================================= */
 
 async function readResponse(response) {
   const text = await response.text();
 
   let data;
-
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
-    data = {
-      detail: text,
-    };
+    data = { detail: text };
   }
 
   if (!response.ok) {
@@ -995,65 +762,41 @@ async function readResponse(response) {
 
 function setText(id, value) {
   const element = document.getElementById(id);
-
-  if (element) {
-    element.textContent = value ?? "";
-  }
+  if (element) element.textContent = value ?? "";
 }
 
 function setAgentStatus(message) {
   setText("agentStatusBadge", message);
 }
 
-function formatStatus(status) {
-  switch (String(status || "").toLowerCase()) {
-    case "accepted":
-      return "Accepted";
-
-    case "wrong_answer":
-      return "Wrong Answer";
-
-    case "compilation_error":
-      return "Compilation Error";
-
-    case "runtime_error":
-      return "Runtime Error";
-
-    case "time_limit_exceeded":
-      return "Time Limit Exceeded";
-
-    default:
-      return status || "Unknown";
+function formatDate(value) {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
   }
 }
 
-function getAttemptText(number) {
-  if (!number || number === 1) {
-    return "First attempt";
-  }
-
-  return `Attempt ${number}`;
-}
-
+let toastTimer = null;
 function showToast(message) {
   const toast = document.getElementById("appToast");
-
   if (!toast) {
     console.log(message);
-
     return;
   }
 
-  const body = toast.querySelector(".toast-body");
+  toast.textContent = message;
+  toast.classList.add("show");
 
-  if (body) {
-    body.textContent = message;
-  }
-
-  if (window.bootstrap) {
-    bootstrap.Toast.getOrCreateInstance(toast).show();
-  }
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 4000);
 }
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")

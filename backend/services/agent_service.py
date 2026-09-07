@@ -5,6 +5,7 @@ from Agent.state import DSAState
 from Agent.graph import graph
 from Tools.problem_tools import get_problem
 from Tools.problem_tools import get_test_cases
+from Tools.student_tools import get_user_by_id, get_skill_profile
 
 from .judge_service import run_code
 import uuid
@@ -35,6 +36,41 @@ def start_session(user_id: int):
         "user_id" : user_id,
         "state": result
     }
+
+def _build_skill_summary(user_id):
+    """
+    DSAState never carries a "user" or "skill" key, so the
+    old code always returned {} for both and the UI silently
+    showed placeholder data. Build a real aggregate from the
+    roadmap-wide skill profile instead.
+    """
+    profile = get_skill_profile(user_id) if user_id else []
+
+    total_solved = sum(t.get("problems_solved") or 0 for t in profile)
+    total_attempted = sum(t.get("problems_attempted") or 0 for t in profile)
+
+    attempted_topics = [t for t in profile if (t.get("problems_attempted") or 0) > 0]
+    avg_skill_score = (
+        sum(float(t.get("skill_score") or 0) for t in attempted_topics)
+        / len(attempted_topics)
+        if attempted_topics
+        else 0
+    )
+
+    accuracy = (
+        round((total_solved / total_attempted) * 100, 1)
+        if total_attempted
+        else 0
+    )
+
+    return {
+        "score": round(avg_skill_score, 1),
+        "solved": total_solved,
+        "attempts": total_attempted,
+        "accuracy": accuracy,
+        "topics": profile,
+    }
+
 def get_current_session(thread_id: str):
     config = get_config(thread_id)
     state = graph.get_state(config)
@@ -43,10 +79,20 @@ def get_current_session(thread_id: str):
         raise ValueError("Session not found")
     
     values = state.values
+    user_id = values.get("user_id")
+
+    task = values.get("current_problem") or None
+    if task:
+        task = {
+            **task,
+            "attempt_number": values.get("attempt_number", 1),
+            "subtopic": (task.get("topics") or [None])[0],
+        }
+
     return  {
         "thread_id":thread_id,
-        "user":values.get("user"),
-        "skill":values.get("skill"),
+        "user": get_user_by_id(user_id) if user_id else None,
+        "skill": _build_skill_summary(user_id),
         "topic":{
             "id": values.get("current_topic_id"),
             "name": (
@@ -62,7 +108,7 @@ def get_current_session(thread_id: str):
             values.get("topic_summary")
             or values.get("lesson")
         ),
-        "task":values.get("current_problem"),
+        "task": task,
         "next_action":values.get("next_action"),
     }
 

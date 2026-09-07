@@ -102,6 +102,22 @@ def get_recent_attempts(user_id: int , limit = 10) -> List[dict[str, Any]]:
         with conn.cursor() as cur:
             cur.execute(query, params)
             return [dict(row) for row in cur.fetchall()]
+def get_user_by_id(user_id: int) -> dict[str, Any] | None:
+    query = """
+        SELECT
+            id,
+            name,
+            email,
+            level,
+            codeforces_handle
+        FROM users
+        WHERE id = %s;
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (user_id,))
+            row = cur.fetchone()
+            return dict(row) if row else None
 def get_skill_profile(user_id)-> List[dict[str, Any]]:
     query = """
         SELECT
@@ -132,4 +148,3 @@ def get_skill_profile(user_id)-> List[dict[str, Any]]:
         with conn.cursor() as cur:
             cur.execute(query, (user_id,))
             return [dict(row) for row in cur.fetchall()]
-

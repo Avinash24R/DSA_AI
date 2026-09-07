@@ -7,6 +7,7 @@ from backend.api.roadmap import router as roadmap_router
 from backend.api.submission import router as submission_router
 from backend.api.progress import router as progress_router
 from backend.api.user import router as user_router
+from backend.api.topic_summary import router as topic_summary_router
 app = FastAPI(
     title="AI DSA Tutor API",
     version= "1.0.0"
@@ -30,6 +31,7 @@ app.include_router(roadmap_router)
 app.include_router(submission_router)
 app.include_router(progress_router)
 app.include_router(user_router)
+app.include_router(topic_summary_router)
 @app.get("/health")
 def health():
     return {
