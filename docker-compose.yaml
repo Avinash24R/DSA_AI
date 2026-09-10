@@ -41,6 +41,7 @@ services:
     volumes:
       - ./scripts:/app/scripts
       - ./db:/app/db
+      - ./ingestion:/app/ingestion
       - ./requirements-seeder.txt:/app/requirements-seeder.txt
     environment:
       POSTGRES_DB: DSA_agent
@@ -54,7 +55,9 @@ services:
     command: >
       sh -c "
       pip install --no-cache-dir -r requirements-seeder.txt &&
-      python scripts/setup.py
+      python scripts/setup.py &&
+      python -m scripts.seed_codeforces &&
+      python -m scripts.seed_leetcode
       "
   frontend:
     build:
