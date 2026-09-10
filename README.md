@@ -662,9 +662,37 @@ You do not need to rebuild just because you stopped and started the containers.
 
 ---
 
+# 16. Desktop Installer (Windows / macOS / Linux)
+
+Instead of running Docker commands by hand, you can use the desktop
+launcher: a small GUI that checks Docker and Python are installed,
+builds the images, starts/stops the stack, and seeds the Codeforces +
+LeetCode problem pools, all from one window with a desktop icon.
+
+See [`desktop/README.md`](desktop/README.md) for the installer for
+your OS. Quick version:
+
+```bash
+# Windows: double-click desktop/install_windows.bat
+# macOS:
+./desktop/install_macos.sh
+# Linux:
+./desktop/install_linux.sh
+```
+
+Each installer creates a `.env` from the template if you don't have
+one yet (you'll still need to add your `GROQ_API` key) and adds a
+desktop icon that opens the launcher. You can also skip the installer
+and just run `python3 desktop/dsa_tutor_launcher.py` directly — it
+only needs the Python standard library.
+
+---
+
 ## License
 
-Add the project's license here.
+This project is licensed under the [MIT License](LICENSE) — you're free to use, modify, and distribute it, including commercially, as long as the original copyright and license notice are kept.
+
+Contributions are welcome — open an issue or pull request on the repository below.
 
 ## Author
 

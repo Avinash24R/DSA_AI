@@ -181,6 +181,15 @@ Include:
 7. Eaxmple code
 
 Do not give a practice problem yet.
+
+Formatting rules (important):
+- Write valid Markdown with a blank line between every paragraph,
+  heading, list, and code block. Never place two blocks back to
+  back on adjacent lines with no blank line between them.
+- Use "##" headings for each numbered section above instead of a
+  horizontal rule ("---") between sections.
+- Put C++ code inside a fenced code block starting with ```cpp
+  and ending with ```, with a blank line before and after the fence.
 """
     llm = get_llm()
     response = llm.invoke(prompt)

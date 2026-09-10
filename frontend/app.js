@@ -814,11 +814,47 @@ async function loadSavedSummaries(containerId) {
 }
 
 
+/*
+ * The AI lesson/summary text comes straight from the LLM, which
+ * writes single newlines between sections/list items rather than
+ * the blank-line-separated blocks CommonMark expects. Without
+ * `breaks: true`, marked's default paragraph rule "lazily"
+ * merges those lines into one run — and a bare "---" right after
+ * a text line gets read as a Setext heading underline (eating the
+ * line break) rather than a horizontal rule, which is exactly why
+ * everything after the first "---" used to collapse into one
+ * unformatted blob. `breaks: true` makes single newlines behave
+ * like line breaks instead, matching how the model actually writes.
+ */
+if (window.marked) {
+  window.marked.setOptions({ gfm: true, breaks: true });
+}
+
+function normalizeMarkdown(text) {
+  let normalized = String(text);
+
+  // Some responses round-trip through JSON with literal "\n"
+  // (two characters) instead of a real newline - unescape them.
+  if (normalized.includes("\\n") && !normalized.includes("\n")) {
+    normalized = normalized.replace(/\\n/g, "\n");
+  }
+
+  // Force a blank line around horizontal rules and headings so a
+  // "---" can never be misread as a Setext heading underline for
+  // the line above it, and headings always start a fresh block.
+  normalized = normalized
+    .replace(/([^\n])\n[ \t]*(-{3,}|\*{3,}|_{3,})[ \t]*\n/g, "$1\n\n$2\n\n")
+    .replace(/\n[ \t]*(-{3,}|\*{3,}|_{3,})[ \t]*\n([^\n])/g, "\n$1\n\n$2")
+    .replace(/([^\n])\n(#{1,6}[ \t])/g, "$1\n\n$2");
+
+  return normalized;
+}
+
 function renderMarkdownString(text) {
   if (!text) return "";
 
   if (window.marked && window.DOMPurify) {
-    const html = window.marked.parse(String(text));
+    const html = window.marked.parse(normalizeMarkdown(text));
     return window.DOMPurify.sanitize(html);
   }
 
