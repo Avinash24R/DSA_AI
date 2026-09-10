@@ -28,7 +28,7 @@
     <div class="card-header">
       <div>
         <div class="eyebrow">Current assignment</div>
-        <div class="topic-title"><h2 id="taskTitle" class="problem-title">Loading problem…</h2><span id="difficultyBadge" class="badge easy">Easy</span></div>
+        <div class="topic-title"><h2 id="taskTitle" class="problem-title">Loading problem…</h2><span id="difficultyBadge" class="badge easy">Easy</span><span id="sourceBadge" class="badge">Source</span></div>
         <div class="problem-meta">
           <span class="meta"><i class="bi bi-diagram-3"></i> <span id="taskTopic">DSA</span></span>
           <span class="meta"><i class="bi bi-clock"></i> <span id="estimatedTime">—</span></span>
@@ -38,10 +38,15 @@
       <div class="icon-box"><i class="bi bi-code-square"></i></div>
     </div>
     <div id="problemDescription" class="markdown-body"><div class="loading">Loading the problem…</div></div>
-    <div class="action-row">
+    <div class="action-row" id="codeforcesActions">
       <a id="solveOnCodeforcesBtn" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Solve on Codeforces</a>
       <button id="checkSubmissionBtn" class="btn btn-outline"><i class="bi bi-arrow-repeat"></i> Check submission</button>
     </div>
+    <div class="action-row" id="leetcodeActions" style="display:none">
+      <a id="solveOnLeetcodeBtn" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Solve on LeetCode</a>
+      <button id="markLeetcodeCompleteBtn" class="btn btn-outline"><i class="bi bi-check2-circle"></i> Mark as complete</button>
+    </div>
+    <p class="note" id="leetcodeNote" style="display:none;margin-top:10px">LeetCode doesn't expose a public submissions API, so there's no automatic check — mark it complete yourself once you've solved it and the AI will evaluate your progress.</p>
   </section>
 
   <section class="card section-gap">

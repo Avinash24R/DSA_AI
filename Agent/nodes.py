@@ -1,5 +1,6 @@
 from .state import DSAState
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 from Tools.student_tools import *
@@ -251,11 +252,21 @@ def present_problem(state: DSAState) -> DSAState:
     return state
 def wait_for_user(state: DSAState) -> DSAState:
 
+    problem = state.get("current_problem") or {}
+    source = problem.get("source")
+
+    if source == "leetcode":
+        message = "Solve the problem on LeetCode, then mark it as complete."
+    elif source == "codeforces":
+        message = "Solve the problem on Codeforces and check your submission."
+    else:
+        message = "Solve the problem, then submit it for evaluation."
+
     answer = interrupt({
         "type": "code_submission",
         "problem_id": state.get("current_problem_id"),
         "problem": state.get("current_problem"),
-        "message": ("Solve the problem on Codeforces and check your submission.")
+        "message": message
     })
 
     start_time = state.get("thinking_start_time")
@@ -278,6 +289,17 @@ def evaluate_answer(state: DSAState) -> DSAState:
     )
 
     state["evaluation"] = evaluation # type: ignore
+
+    assignment_id = state.get("problem_assignment_id")
+    judge_result = state.get("judge_result") or {}
+
+    if assignment_id:
+        complete_problem_assignment(
+            assignment_id=assignment_id,
+            submission_id=judge_result.get("submission_id"),
+            submitted_at=datetime.now(timezone.utc),
+            status="accepted" if evaluation.get("correct") else "rejected",
+        )
 
     if evaluation["correct"]:
         state["next_action"] = "UPDATE_PROGRESS"

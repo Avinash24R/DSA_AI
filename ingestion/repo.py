@@ -39,7 +39,7 @@ def save_problem(problem: Problem) -> int:
         RETURNING id;
     """
     source = problem.source
-    external_id = problem.problem_id.removeprefix(f"{problem.source}")
+    external_id = problem.problem_id.split(":", 1)[1]
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(

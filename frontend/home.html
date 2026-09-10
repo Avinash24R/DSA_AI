@@ -52,7 +52,7 @@
     <div class="flow">
       <div id="agentStepTopic" class="flow-step active"><div class="num">1</div><strong>Choose topic</strong><small>AI selects the next topic from your roadmap and progress.</small></div>
       <div id="agentStepSummary" class="flow-step"><div class="num">2</div><strong>Study the note</strong><small>Read the generated README-style lesson before solving.</small></div>
-      <div id="agentStepProblem" class="flow-step"><div class="num">3</div><strong>Solve the problem</strong><small>Open Codeforces, submit, then return to verify.</small></div>
+      <div id="agentStepProblem" class="flow-step"><div class="num">3</div><strong>Solve the problem</strong><small id="agentStepProblemHint">Open the problem, submit, then return to verify.</small></div>
     </div>
   </section>
 
@@ -71,14 +71,14 @@
   <section class="card section-gap">
     <div class="card-header">
       <div><div class="eyebrow">Next task</div><h2 id="taskTitle">Problem</h2><p id="taskTopic">—</p></div>
-      <span id="difficultyBadge" class="badge easy">Easy</span>
+      <div style="display:flex;gap:8px;align-items:flex-start"><span id="difficultyBadge" class="badge easy">Easy</span><span id="sourceBadge" class="badge">Source</span></div>
     </div>
     <div class="problem-meta">
       <span class="meta"><i class="bi bi-clock"></i> <span id="estimatedTime">—</span></span>
       <span class="meta"><i class="bi bi-repeat"></i> <span id="attemptText">First attempt</span></span>
     </div>
     <div id="homeProblemDescription" class="markdown-body"><div class="loading">Problem details will appear here.</div></div>
-    <div class="action-row"><a id="problemUrl" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Open Codeforces problem</a></div>
+    <div class="action-row"><a id="problemUrl" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> <span id="problemUrlLabel">Open problem</span></a></div>
   </section>
 </div>
 </main>

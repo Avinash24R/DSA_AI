@@ -37,7 +37,11 @@
         <label for="onboardingCodeforces">Codeforces handle</label>
         <input id="onboardingCodeforces" class="input" required placeholder="your_codeforces_handle">
       </div>
-      <div class="form-help">The handle is used only to verify submissions for the problem assigned by the AI.</div>
+      <div class="form-group">
+        <label for="onboardingLeetcode">LeetCode username <span style="color:#78839c;font-weight:400">(optional)</span></label>
+        <input id="onboardingLeetcode" class="input" placeholder="your_leetcode_username">
+      </div>
+      <div class="form-help">Handles are used to fetch problems and verify your submissions. Codeforces submissions are checked automatically; LeetCode problems are marked complete by you, since LeetCode doesn't expose a public submissions API.</div>
       <button id="startLearningBtn" class="btn btn-primary" type="submit" style="width:100%">
         <i class="bi bi-play-fill"></i> Start learning
       </button>

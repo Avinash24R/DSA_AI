@@ -22,6 +22,7 @@ TAG_ALIASES = {
     # Stack
     "stack": "Monotonic Stack",
     "stacks": "Monotonic Stack",
+    "expression_parsing": "Expression Evaluation",
 
     # Linked List
     "linked_list": "Linked List",
@@ -36,6 +37,9 @@ TAG_ALIASES = {
     "graphs": "Graph",
     "dfs_and_similar": "Graph",
     "dsu": "Graph",
+    "graph_matchings": "Graph",
+    "shortest_paths": "Graph",
+    "flows": "Graph",
 
     # DP
     "dp": "Dynamic Programming",
@@ -43,7 +47,9 @@ TAG_ALIASES = {
 
     # Greedy
     "greedy": "Greedy",
-
+    "sortings": "Greedy",
+    "sorting": "Greedy",
+    "schedules": "Greedy",
 
     "backtracking": "Backtracking",
 
@@ -53,8 +59,62 @@ TAG_ALIASES = {
     "math": "Math",
     "number_theory": "Math",
     "combinatorics": "Math",
+    "chinese_remainder_theorem": "Math",
+    "probabilities": "Math",
 
-    "data_structures": "Heap / Priority Queue",
+    "strings": "String",
+    "string": "String",
+    "string_suffix_structures": "String",
+
+    "ternary_search": "Binary Search",
+
+    # Note: intentionally NOT mapped — these Codeforces tags are
+    # too generic (they'd match almost every problem regardless of
+    # topic) or have no equivalent roadmap topic, so leaving them
+    # unmapped is more correct than forcing a guess:
+    #   implementation, brute_force, data_structures, geometry,
+    #   constructive_algorithms, interactive, games, matrices,
+    #   divide_and_conquer, fft, meet_in_the_middle, 2_sat
+}
+
+# LeetCode's topic-tag vocabulary differs from Codeforces'; these
+# are extra aliases layered on top of TAG_ALIASES for LeetCode-only
+# tag spellings that don't already have an entry above.
+LEETCODE_TAG_ALIASES = {
+    "linked_list": "Linked List",
+    "two_pointers": "Two Pointer",
+    "sliding_window": "Sliding Window",
+    "binary_search": "Binary Search",
+    "stack": "Monotonic Stack",
+    "monotonic_stack": "Monotonic Stack",
+    "queue": "Queue",
+    "monotonic_queue": "Monotonic Queue",
+    "hash_table": "Hashing",
+    "breadth_first_search": "BFS",
+    "depth_first_search": "DFS",
+    "binary_tree": "Binary Tree",
+    "binary_search_tree": "Binary Search Tree",
+    "tree": "Tree",
+    "graph": "Graph",
+    "topological_sort": "Topological Sort",
+    "union_find": "DSU",
+    "minimum_spanning_tree": "MST",
+    "shortest_path": "Shortest Path",
+    "heap_priority_queue": "Heap / Priority Queue",
+    "greedy": "Greedy",
+    "dynamic_programming": "Dynamic Programming",
+    "backtracking": "Backtracking",
+    "bit_manipulation": "Bit Manipulation",
+    "bitmask": "Bitmask",
+    "math": "Math",
+    "number_theory": "Number Theory",
+    "combinatorics": "Combinatorics",
+    "sorting": "Greedy",
+    "string": "String",
+    "recursion": "Backtracking",
+    "prefix_sum": "Prefix Sum",
+    "subsets": "Subsets",
+    "counting": "Frequency Map",
 }
 
 def normalize_topic(value: str) -> str:
@@ -78,6 +138,7 @@ def build_roadmap_topic_map(roadmap_rows: list[dict])-> dict[str, int]:
 def map_provider_tag(
     provider_tag: str,
     roadmap_topics: dict[str, int],
+    alias_map: dict[str, str] | None = None,
 ) -> int | None:
 
     normalized = normalize_topic(provider_tag)
@@ -87,7 +148,8 @@ def map_provider_tag(
         return roadmap_topics[normalized]
 
     # 2. Alias
-    alias = TAG_ALIASES.get(normalized)
+    aliases = alias_map if alias_map is not None else TAG_ALIASES
+    alias = aliases.get(normalized)
 
     if alias is None:
         return None
@@ -97,12 +159,14 @@ def map_provider_tag(
 def map_problem_topics(
     provider_topics: list[str],
     roadmap_topics: dict[str, int],
+    alias_map: dict[str, str] | None = None,
 ) -> list[int]:
     topic_ids: set[int] = set()
     for provider_topic in provider_topics:
         topic_id = map_provider_tag(
             provider_topic,
-            roadmap_topics
+            roadmap_topics,
+            alias_map=alias_map,
         )
 
         if topic_id is not None:

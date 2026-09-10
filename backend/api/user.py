@@ -9,20 +9,21 @@ router = APIRouter(prefix="/api/users", tags=["user"])
 @router.post("")
 def create_user(user:UserCreate):
     query = """
-    INSERT INTO users(name,email,level, codeforces_handle)
-    VALUES(%s,%s,%s,%s)
+    INSERT INTO users(name,email,level, codeforces_handle, leetcode_handle)
+    VALUES(%s,%s,%s,%s,%s)
     ON CONFLICT(email)
     DO UPDATE SET
         name=EXCLUDED.name,
         level=EXCLUDED.level,
-        codeforces_handle=EXCLUDED.codeforces_handle
-    RETURNING id,name,email,level,codeforces_handle;
+        codeforces_handle=EXCLUDED.codeforces_handle,
+        leetcode_handle=EXCLUDED.leetcode_handle
+    RETURNING id,name,email,level,codeforces_handle,leetcode_handle;
     """
 
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(query, (user.name, user.email, user.level, user.codeforces_handle))
+                cur.execute(query, (user.name, user.email, user.level, user.codeforces_handle, user.leetcode_handle))
                 row = cur.fetchone()
             conn.commit()
 
@@ -38,6 +39,7 @@ def create_user(user:UserCreate):
                 "email": row[2],
                 "level": row[3],
                 "codeforces_handle": row[4],
+                "leetcode_handle": row[5],
             }
 
         return {
@@ -46,6 +48,7 @@ def create_user(user:UserCreate):
             "email": user_row["email"],
             "level": user_row["level"],
             "codeforces_handle": user_row["codeforces_handle"],
+            "leetcode_handle": user_row["leetcode_handle"],
         }
     except HTTPException:
         raise

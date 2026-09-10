@@ -109,7 +109,8 @@ def get_user_by_id(user_id: int) -> dict[str, Any] | None:
             name,
             email,
             level,
-            codeforces_handle
+            codeforces_handle,
+            leetcode_handle
         FROM users
         WHERE id = %s;
     """

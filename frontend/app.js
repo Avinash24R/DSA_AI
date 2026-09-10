@@ -76,6 +76,11 @@ function bindEvents() {
   if (checkSubmissionButton) {
     checkSubmissionButton.addEventListener("click", checkCodeforcesSubmission);
   }
+
+  const markCompleteButton = document.getElementById("markLeetcodeCompleteBtn");
+  if (markCompleteButton) {
+    markCompleteButton.addEventListener("click", markLeetcodeComplete);
+  }
 }
 
 function resetSession() {
@@ -128,6 +133,9 @@ async function createUserAndSession() {
   const codeforcesHandle = document
     .getElementById("onboardingCodeforces")
     ?.value.trim();
+  const leetcodeHandle = document
+    .getElementById("onboardingLeetcode")
+    ?.value.trim();
 
   if (!name) {
     showToast("Please enter your name.");
@@ -160,6 +168,7 @@ async function createUserAndSession() {
         email,
         level,
         codeforces_handle: codeforcesHandle,
+        leetcode_handle: leetcodeHandle || null,
       }),
     });
 
@@ -293,6 +302,18 @@ function renderSession(data) {
       cfElement.textContent = "—";
     }
   }
+
+  const lcHandle = user.leetcode_handle;
+  const lcElement = document.getElementById("profileLeetcode");
+  if (lcElement) {
+    if (lcHandle) {
+      lcElement.innerHTML = `<a href="https://leetcode.com/u/${encodeURIComponent(
+        lcHandle,
+      )}/" target="_blank" rel="noopener noreferrer">${escapeHtml(lcHandle)}</a>`;
+    } else {
+      lcElement.textContent = "Not connected";
+    }
+  }
 }
 
 
@@ -402,6 +423,11 @@ function renderProblem(task) {
     badge.className = `badge ${difficulty.toLowerCase()}`;
   }
 
+  const sourceBadge = document.getElementById("sourceBadge");
+  if (sourceBadge) {
+    sourceBadge.textContent = task.source === "leetcode" ? "LeetCode" : "Codeforces";
+  }
+
   renderMarkdown(
     "problemDescription",
     task.description,
@@ -419,10 +445,39 @@ function renderProblem(task) {
     url.classList.toggle("disabled", !task.url);
   }
 
+  const sourceLabel = task.source === "leetcode" ? "LeetCode" : "Codeforces";
+
+  setText("problemUrlLabel", `Open ${sourceLabel} problem`);
+  setText(
+    "agentStepProblemHint",
+    `Open ${sourceLabel}, submit, then return to verify.`,
+  );
+
+  /*
+   * Codeforces submissions can be checked automatically via the
+   * public API; LeetCode has no such API, so the student marks
+   * the problem complete themselves. Show only the relevant flow.
+   */
+  const isLeetcode = task.source === "leetcode";
+
+  const cfActions = document.getElementById("codeforcesActions");
+  const lcActions = document.getElementById("leetcodeActions");
+  const lcNote = document.getElementById("leetcodeNote");
+
+  if (cfActions) cfActions.style.display = isLeetcode ? "none" : "";
+  if (lcActions) lcActions.style.display = isLeetcode ? "" : "none";
+  if (lcNote) lcNote.style.display = isLeetcode ? "" : "none";
+
   const cfLink = document.getElementById("solveOnCodeforcesBtn");
   if (cfLink) {
     cfLink.href = task.url || "#";
     cfLink.classList.toggle("disabled", !task.url);
+  }
+
+  const lcLink = document.getElementById("solveOnLeetcodeBtn");
+  if (lcLink) {
+    lcLink.href = task.url || "#";
+    lcLink.classList.toggle("disabled", !task.url);
   }
 }
 
@@ -501,6 +556,46 @@ function renderCodeforcesResult(result) {
       ? `Codeforces verdict: ${judge.verdict}`
       : "No submission found for this problem yet.",
   );
+}
+
+async function markLeetcodeComplete() {
+  const threadId = localStorage.getItem("dsa_thread_id");
+
+  if (!threadId) {
+    showToast("No active agent session");
+    return;
+  }
+
+  const button = document.getElementById("markLeetcodeCompleteBtn");
+  const originalContent = button?.innerHTML;
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner">↻</span> Marking complete…`;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/mark-leetcode-complete`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+    const result = await readResponse(response);
+    console.log("LEETCODE MARK COMPLETE:", result);
+
+    showToast("Nice work! The AI is evaluating your progress.");
+    setTimeout(loadSession, 1000);
+  } catch (error) {
+    console.error("MARK LEETCODE COMPLETE ERROR:", error);
+    showToast(error.message || "Could not mark this problem complete.");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = originalContent;
+    }
+  }
 }
 
 

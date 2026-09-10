@@ -96,12 +96,13 @@ def create_problem_assignment(
         conn.commit()
     if isinstance(row, dict):
         return row["id"] # type: ignore
-    return row[0]
+    return row[0] # type: ignore
 
 def complete_problem_assignment(
     assignment_id: int,
-    submission_id: int,
+    submission_id: int | None,
     submitted_at,
+    status: str = "submitted",
 ) -> None:
 
     with get_connection() as conn:
@@ -114,12 +115,13 @@ def complete_problem_assignment(
                 SET
                     submitted_at = %s,
                     codeforces_submission_id = %s,
-                    status = 'submitted'
+                    status = %s
                 WHERE id = %s
                 """,
                 (
                     submitted_at,
                     submission_id,
+                    status,
                     assignment_id,
                 ),
             )
