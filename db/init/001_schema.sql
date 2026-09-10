@@ -5,6 +5,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     level VARCHAR(50) NOT NULL DEFAULT 'Beginner',
     codeforces_handle VARCHAR(100) NOT NULL UNIQUE,
+    leetcode_handle VARCHAR(100) NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- use hierarchical table

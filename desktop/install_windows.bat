@@ -84,7 +84,9 @@ REM 5. Create a desktop shortcut to the launcher
 REM ---------------------------------------------------------------
 set "LAUNCHER=%PROJECT_ROOT%\desktop\dsa_tutor_launcher.py"
 set "ICON=%PROJECT_ROOT%\desktop\assets\icon.ico"
-set "SHORTCUT=%USERPROFILE%\Desktop\DSA AI Tutor.lnk"
+
+set "DESKTOP=%USERPROFILE%\OneDrive\Desktop"
+set "SHORTCUT=%DESKTOP%\dsa_tutor.lnk"
 
 for /f "delims=" %%P in ('where pythonw 2^>nul') do set "PYTHONW=%%P"
 if not defined PYTHONW set "PYTHONW=%PYTHON_CMD%"
@@ -104,11 +106,3 @@ if %errorlevel% equ 0 (
     echo You can still run the launcher directly with:
     echo     %PYTHON_CMD% "%LAUNCHER%"
 )
-
-echo.
-echo ===============================================
-echo   Setup complete!
-echo   Double-click "DSA AI Tutor" on your Desktop
-echo   to open the launcher.
-echo ===============================================
-pause

@@ -1,2 +1,1 @@
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS leetcode_handle VARCHAR(100);
+
