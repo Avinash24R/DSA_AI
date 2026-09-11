@@ -118,7 +118,13 @@ def select_problem(topic_id:int, topic_name:str, skill:dict[str, Any], recent_at
     candidates = [
         problem
         for problem in candidates
-        if problem["problem_id"] not in attempted_ids
+        # problem_attempts.problem_id stores the composite
+        # "source:external_id" string (see select_problem_node /
+        # save_attempt), while find_problems() returns the raw
+        # integer primary key as problem_id - compare on the same
+        # composite format both sides actually use, otherwise this
+        # filter silently never excludes anything.
+        if f'{problem["source"]}:{problem["external_id"]}' not in attempted_ids
     ]
     if not candidates:
         raise ValueError(

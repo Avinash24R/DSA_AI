@@ -242,10 +242,14 @@ def select_problem_node(state: DSAState) -> DSAState:
     state["attempt_number"] = 1
     state["hint_level"] = 0
     db_problem_id = problem.get("id")
-    if not state.get("problem_assignment_id"):
-        assignment_id = create_problem_assignment(user_id=state.get("user_id"),problem_id=db_problem_id)
-        state["problem_assignment_id"] = assignment_id
-        state["assigned_problem_id"] = problem_id
+
+    # A new problem always needs its own assignment record — reusing
+    # a stale problem_assignment_id from a previous problem in this
+    # session would point future submission checks/status updates at
+    # the wrong problem_id and assigned_at timestamp.
+    assignment_id = create_problem_assignment(user_id=state.get("user_id"), problem_id=db_problem_id)
+    state["problem_assignment_id"] = assignment_id
+    state["assigned_problem_id"] = problem_id
     state["next_action"] = "PRESENT_PROBLEM"
 
     return state

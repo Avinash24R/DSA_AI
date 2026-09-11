@@ -74,12 +74,7 @@ function bindEvents() {
 
   const checkSubmissionButton = document.getElementById("checkSubmissionBtn");
   if (checkSubmissionButton) {
-    checkSubmissionButton.addEventListener("click", checkCodeforcesSubmission);
-  }
-
-  const markCompleteButton = document.getElementById("markLeetcodeCompleteBtn");
-  if (markCompleteButton) {
-    markCompleteButton.addEventListener("click", markLeetcodeComplete);
+    checkSubmissionButton.addEventListener("click", checkSubmission);
   }
 }
 
@@ -452,33 +447,6 @@ function renderProblem(task) {
     "agentStepProblemHint",
     `Open ${sourceLabel}, submit, then return to verify.`,
   );
-
-  /*
-   * Codeforces submissions can be checked automatically via the
-   * public API; LeetCode has no such API, so the student marks
-   * the problem complete themselves. Show only the relevant flow.
-   */
-  const isLeetcode = task.source === "leetcode";
-
-  const cfActions = document.getElementById("codeforcesActions");
-  const lcActions = document.getElementById("leetcodeActions");
-  const lcNote = document.getElementById("leetcodeNote");
-
-  if (cfActions) cfActions.style.display = isLeetcode ? "none" : "";
-  if (lcActions) lcActions.style.display = isLeetcode ? "" : "none";
-  if (lcNote) lcNote.style.display = isLeetcode ? "" : "none";
-
-  const cfLink = document.getElementById("solveOnCodeforcesBtn");
-  if (cfLink) {
-    cfLink.href = task.url || "#";
-    cfLink.classList.toggle("disabled", !task.url);
-  }
-
-  const lcLink = document.getElementById("solveOnLeetcodeBtn");
-  if (lcLink) {
-    lcLink.href = task.url || "#";
-    lcLink.classList.toggle("disabled", !task.url);
-  }
 }
 
 function markProblemReady() {
@@ -492,7 +460,7 @@ function getAttemptText(number) {
   return `Attempt ${number}`;
 }
 
-async function checkCodeforcesSubmission() {
+async function checkSubmission() {
   const threadId = localStorage.getItem("dsa_thread_id");
 
   if (!threadId) {
@@ -517,8 +485,8 @@ async function checkCodeforcesSubmission() {
     );
 
     const result = await readResponse(response);
-    console.log("CODEFORCES CHECK:", result);
-    renderCodeforcesResult(result);
+    console.log("SUBMISSION CHECK:", result);
+    renderSubmissionResult(result);
 
     if (result.judge_result?.accepted) {
       showToast("Accepted! The AI is evaluating your progress.");
@@ -526,11 +494,11 @@ async function checkCodeforcesSubmission() {
     } else if (result.judge_result?.found) {
       showToast(`Submission found: ${result.judge_result.verdict}`);
     } else {
-      showToast("No submission found yet.");
+      showToast("No accepted submission found yet.");
     }
   } catch (error) {
-    console.error("CODEFORCES CHECK ERROR:", error);
-    showToast(error.message || "Could not check Codeforces submission.");
+    console.error("SUBMISSION CHECK ERROR:", error);
+    showToast(error.message || "Could not check your submission.");
   } finally {
     if (button) {
       button.disabled = false;
@@ -539,8 +507,9 @@ async function checkCodeforcesSubmission() {
   }
 }
 
-function renderCodeforcesResult(result) {
+function renderSubmissionResult(result) {
   const judge = result?.judge_result || {};
+  const source = judge.source === "leetcode" ? "LeetCode" : "Codeforces";
 
   const card = document.getElementById("judgeCard");
   if (card) card.style.display = "";
@@ -553,49 +522,9 @@ function renderCodeforcesResult(result) {
   setText(
     "judgeError",
     judge.found
-      ? `Codeforces verdict: ${judge.verdict}`
-      : "No submission found for this problem yet.",
+      ? `${source} verdict: ${judge.verdict}`
+      : `No accepted ${source} submission found for this problem yet.`,
   );
-}
-
-async function markLeetcodeComplete() {
-  const threadId = localStorage.getItem("dsa_thread_id");
-
-  if (!threadId) {
-    showToast("No active agent session");
-    return;
-  }
-
-  const button = document.getElementById("markLeetcodeCompleteBtn");
-  const originalContent = button?.innerHTML;
-  if (button) {
-    button.disabled = true;
-    button.innerHTML = `<span class="spinner">↻</span> Marking complete…`;
-  }
-
-  try {
-    const response = await fetch(
-      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/mark-leetcode-complete`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-
-    const result = await readResponse(response);
-    console.log("LEETCODE MARK COMPLETE:", result);
-
-    showToast("Nice work! The AI is evaluating your progress.");
-    setTimeout(loadSession, 1000);
-  } catch (error) {
-    console.error("MARK LEETCODE COMPLETE ERROR:", error);
-    showToast(error.message || "Could not mark this problem complete.");
-  } finally {
-    if (button) {
-      button.disabled = false;
-      button.innerHTML = originalContent;
-    }
-  }
 }
 
 

@@ -1,4 +1,4 @@
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, START
 from langgraph.checkpoint.memory import InMemorySaver
 
 from Agent.state import DSAState
@@ -52,9 +52,8 @@ def create_graph():
     )
 
     graph.add_edge("hint_retry", "wait_for_user")
-    graph.add_edge("update_progress", END)
 
-    # Use an in-memory checkpointer to support pause/resume in tests and
-    # short-lived runs.
+    graph.add_edge("update_progress", "load_student")
+
     return graph.compile(checkpointer=InMemorySaver())
 graph=create_graph()

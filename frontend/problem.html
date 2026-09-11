@@ -38,15 +38,10 @@
       <div class="icon-box"><i class="bi bi-code-square"></i></div>
     </div>
     <div id="problemDescription" class="markdown-body"><div class="loading">Loading the problem…</div></div>
-    <div class="action-row" id="codeforcesActions">
-      <a id="solveOnCodeforcesBtn" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Solve on Codeforces</a>
+    <div class="action-row">
+      <a id="problemUrl" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> <span id="problemUrlLabel">Open problem</span></a>
       <button id="checkSubmissionBtn" class="btn btn-outline"><i class="bi bi-arrow-repeat"></i> Check submission</button>
     </div>
-    <div class="action-row" id="leetcodeActions" style="display:none">
-      <a id="solveOnLeetcodeBtn" class="btn btn-primary" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Solve on LeetCode</a>
-      <button id="markLeetcodeCompleteBtn" class="btn btn-outline"><i class="bi bi-check2-circle"></i> Mark as complete</button>
-    </div>
-    <p class="note" id="leetcodeNote" style="display:none;margin-top:10px">LeetCode doesn't expose a public submissions API, so there's no automatic check — mark it complete yourself once you've solved it and the AI will evaluate your progress.</p>
   </section>
 
   <section class="card section-gap">
@@ -57,7 +52,7 @@
       <div class="approach-item"><div class="check">3</div><div><strong>Match the pattern</strong><p>Ask which pattern from the lesson applies: traversal, two pointers, sliding window, hashing, binary search, prefix sums, DP, and so on.</p></div></div>
       <div class="approach-item"><div class="check">4</div><div><strong>Prove the invariant</strong><p>Before coding, state what your pointers, window, map, or DP state means and why it remains correct after each step.</p></div></div>
       <div class="approach-item"><div class="check">5</div><div><strong>Test edge cases</strong><p>Check empty/small input, duplicates, boundaries, already-valid input, and the largest constraint you can construct.</p></div></div>
-      <div class="approach-item"><div class="check">6</div><div><strong>Submit on Codeforces</strong><p>After the solution passes, return here and use <b>Check submission</b>. The backend verifies the Codeforces submission against your assigned problem and assignment time.</p></div></div>
+      <div class="approach-item"><div class="check">6</div><div><strong>Submit your solution</strong><p>After it passes, return here and use <b>Check submission</b>. The backend verifies your latest accepted submission (Codeforces or LeetCode) against your assigned problem and assignment time.</p></div></div>
     </div>
   </section>
 
