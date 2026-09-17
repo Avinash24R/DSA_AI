@@ -67,6 +67,19 @@
 
   <section class="card section-gap">
     <div class="card-header">
+      <div><div class="eyebrow">Stuck?</div><h2>Ask the AI for a hint</h2><p>You get <strong id="hintsRemaining">5</strong> of 5 hints for this problem. Hints start conceptual and get more concrete step by step — the full solution is never handed over.</p></div>
+      <div class="icon-box"><i class="bi bi-chat-dots"></i></div>
+    </div>
+    <div id="chatMessages" class="chat-messages"><div class="loading">Loading your hint history…</div></div>
+    <div class="action-row">
+      <input id="chatInput" class="input" style="flex:1;min-width:220px" placeholder="Ask a specific question (optional)…">
+      <button id="sendChatBtn" class="btn btn-primary"><i class="bi bi-send"></i> Ask</button>
+      <button id="getHintBtn" class="btn btn-outline"><i class="bi bi-lightbulb"></i> Get a hint</button>
+    </div>
+  </section>
+
+  <section class="card section-gap">
+    <div class="card-header">
       <div><div class="eyebrow">History</div><h2>Your solved problems</h2><p>Every problem attempt the AI has recorded for you, most recent first.</p></div>
       <div class="icon-box"><i class="bi bi-list-check"></i></div>
     </div>

@@ -31,11 +31,13 @@ class DSAState(TypedDict, total=False):
     current_topic_id: int
     current_topic: str
     available_subtopics: list[dict[str, Any]]
+    topic_changed: bool
+    topic_difficulty_progress: dict[str, int]
+    target_difficulty: str
 
-    #problems
+    # Problems
     problem_pool_ready: bool
     problem_pool_count: int
-
 
     # Current problem
     current_problem_id: str
@@ -46,17 +48,20 @@ class DSAState(TypedDict, total=False):
     assigned_problem_id: str
     attempt_number: int
     hint_level: int
+    hint_requested: bool
+    chat_history: list[dict[str, Any]]
+    last_hint: str
+    last_user_message: str
     thinking_time_seconds: int
-    thinking_start_time : float
+    thinking_start_time: float
     user_answer: str
 
-
-    # Evaluatio2
+    # Evaluation
     judge_result: dict[str, Any]
     evaluation: dict[str, Any]
 
     # Workflow control
-    lesson: str |  list[str | dict[Any, Any]]
+    lesson: str | list[str | dict[Any, Any]]
     next_action: str
 
 class SubmissionEvaluation(BaseModel):

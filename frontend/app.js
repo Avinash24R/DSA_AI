@@ -54,6 +54,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (document.getElementById("solvedProblemsList")) {
     await loadSolvedProblems();
   }
+
+  if (document.getElementById("chatMessages")) {
+    await loadChatPanel();
+  }
 });
 
 function bindEvents() {
@@ -75,6 +79,30 @@ function bindEvents() {
   const checkSubmissionButton = document.getElementById("checkSubmissionBtn");
   if (checkSubmissionButton) {
     checkSubmissionButton.addEventListener("click", checkSubmission);
+  }
+
+  const sendChatButton = document.getElementById("sendChatBtn");
+  if (sendChatButton) {
+    sendChatButton.addEventListener("click", () => {
+      const input = document.getElementById("chatInput");
+      const message = input ? input.value.trim() : "";
+      sendChatMessage(message);
+    });
+  }
+
+  const getHintButton = document.getElementById("getHintBtn");
+  if (getHintButton) {
+    getHintButton.addEventListener("click", () => sendChatMessage(""));
+  }
+
+  const chatInput = document.getElementById("chatInput");
+  if (chatInput) {
+    chatInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        sendChatMessage(chatInput.value.trim());
+      }
+    });
   }
 }
 
@@ -261,6 +289,17 @@ function renderSession(data) {
   setText("homeSkill", skill.score ?? 0);
   setText("homeSolved", skill.solved ?? 0);
   setText("homeAccuracy", `${skill.accuracy ?? 0}%`);
+
+  const topicProgress = data?.topic_progress;
+  if (topicProgress) {
+    const counts = topicProgress.difficulty_counts || {};
+    const easyReq = topicProgress.easy_required ?? 2;
+    const mediumReq = topicProgress.medium_required ?? 2;
+    setText(
+      "topicProgressNote",
+      `Easy ${counts.easy ?? 0}/${easyReq} · Medium ${counts.medium ?? 0}/${mediumReq} solved here`,
+    );
+  }
 
   const homeIntro = document.getElementById("homeIntro");
   if (homeIntro) {
@@ -490,7 +529,12 @@ async function checkSubmission() {
 
     if (result.judge_result?.accepted) {
       showToast("Accepted! The AI is evaluating your progress.");
-      setTimeout(loadSession, 1000);
+      setTimeout(() => {
+        loadSession();
+        // A new problem means a new assignment - reset the hint
+        // panel instead of showing the previous problem's thread.
+        if (document.getElementById("chatMessages")) loadChatPanel();
+      }, 1000);
     } else if (result.judge_result?.found) {
       showToast(`Submission found: ${result.judge_result.verdict}`);
     } else {
@@ -525,6 +569,155 @@ function renderSubmissionResult(result) {
       ? `${source} verdict: ${judge.verdict}`
       : `No accepted ${source} submission found for this problem yet.`,
   );
+}
+
+/* =========================================================
+   HINT / CHAT
+========================================================= */
+
+async function loadChatPanel() {
+  const threadId = localStorage.getItem("dsa_thread_id");
+  if (!threadId) return;
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/chat`,
+    );
+    const data = await readResponse(response);
+
+    renderChatMessages(data.messages || []);
+    updateHintsUI(data.hints_used ?? 0, data.hints_remaining ?? 5);
+  } catch (error) {
+    console.error("CHAT LOAD ERROR:", error);
+    const container = document.getElementById("chatMessages");
+    if (container) {
+      container.innerHTML = `<div class="empty-state">Could not load your hint history.</div>`;
+    }
+  }
+}
+
+function renderChatMessages(messages) {
+  const container = document.getElementById("chatMessages");
+  if (!container) return;
+
+  if (!messages.length) {
+    container.innerHTML = `<div class="empty-state">No messages yet — ask a specific question, or just click "Get a hint".</div>`;
+    return;
+  }
+
+  container.innerHTML = messages
+    .map((m) => {
+      const isUser = m.role === "user";
+      const label = isUser ? "You" : "AI mentor";
+      const hintLabel = m.hint_number ? ` · hint ${m.hint_number}/5` : "";
+      const bodyHtml = isUser
+        ? escapeHtml(m.content)
+        : `<div class="markdown-body" data-raw="${escapeHtml(m.content)}"></div>`;
+
+      return `
+        <div class="chat-message ${isUser ? "user" : "assistant"}">
+          ${bodyHtml}
+          <small>${label}${hintLabel}</small>
+        </div>
+      `;
+    })
+    .join("");
+
+  container.querySelectorAll(".markdown-body[data-raw]").forEach((el) => {
+    const raw = el.getAttribute("data-raw") || "";
+    el.innerHTML = renderMarkdownString(raw);
+    el.removeAttribute("data-raw");
+  });
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function updateHintsUI(hintsUsed, hintsRemaining) {
+  setText("hintsRemaining", hintsRemaining);
+
+  const exhausted = hintsRemaining <= 0;
+  const sendBtn = document.getElementById("sendChatBtn");
+  const hintBtn = document.getElementById("getHintBtn");
+  const input = document.getElementById("chatInput");
+
+  [sendBtn, hintBtn, input].forEach((el) => {
+    if (el) el.disabled = exhausted;
+  });
+
+  if (exhausted) {
+    const container = document.getElementById("chatMessages");
+    if (container && !container.querySelector(".hints-exhausted-note")) {
+      const note = document.createElement("div");
+      note.className = "empty-state hints-exhausted-note";
+      note.textContent = "You've used all 5 hints for this problem — you've got this, keep going!";
+      container.appendChild(note);
+    }
+  }
+}
+
+async function sendChatMessage(message) {
+  const threadId = localStorage.getItem("dsa_thread_id");
+  if (!threadId) {
+    showToast("No active agent session");
+    return;
+  }
+
+  const sendBtn = document.getElementById("sendChatBtn");
+  const hintBtn = document.getElementById("getHintBtn");
+  const input = document.getElementById("chatInput");
+  [sendBtn, hintBtn].forEach((btn) => btn && (btn.disabled = true));
+
+  // Optimistically show the user's message right away.
+  const container = document.getElementById("chatMessages");
+  if (container) {
+    const emptyState = container.querySelector(".empty-state");
+    if (emptyState) emptyState.remove();
+
+    const bubble = document.createElement("div");
+    bubble.className = "chat-message user";
+    bubble.innerHTML = `${escapeHtml(message || "(asked for a hint)")}<small>You</small>`;
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+  }
+  if (input) input.value = "";
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/agent/session/${encodeURIComponent(threadId)}/chat`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      },
+    );
+    const data = await readResponse(response);
+
+    if (container) {
+      const bubble = document.createElement("div");
+      bubble.className = "chat-message assistant";
+      const bodyEl = document.createElement("div");
+      bodyEl.className = "markdown-body";
+      bodyEl.innerHTML = renderMarkdownString(data.reply);
+      bubble.appendChild(bodyEl);
+      const meta = document.createElement("small");
+      meta.textContent = `AI mentor · hint ${data.hint_number}/5`;
+      bubble.appendChild(meta);
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    updateHintsUI(data.hints_used, data.hints_remaining);
+  } catch (error) {
+    console.error("CHAT SEND ERROR:", error);
+    showToast(error.message || "Could not get a hint right now.");
+    // Reload from the server so the optimistic bubble doesn't drift
+    // out of sync with what was actually saved.
+    await loadChatPanel();
+  } finally {
+    const remaining = document.getElementById("hintsRemaining");
+    const exhausted = remaining && Number(remaining.textContent) <= 0;
+    [sendBtn, hintBtn].forEach((btn) => btn && (btn.disabled = Boolean(exhausted)));
+  }
 }
 
 

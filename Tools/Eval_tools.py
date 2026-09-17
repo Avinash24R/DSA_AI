@@ -11,7 +11,12 @@ from Agent.state import SubmissionEvaluation
 from typing import cast
 from Agent.llm import get_llm
 import json
-def save_attempt(user_id,roadmap_topic_id , problem_id, attempt_number, thinking_time_seconds ,evaluation):
+
+# Points deducted (per hint used, capped at 5) from the score used for
+# skill_score/weak_score tracking - see update_progress(). Doesn't
+# touch the raw per-attempt overall_score stored on problem_attempts.
+HINT_SKILL_PENALTY = 6
+def save_attempt(user_id,roadmap_topic_id , problem_id, attempt_number, thinking_time_seconds ,evaluation, hints_used: int = 0):
     '''
     Persist one problem attempt into problem_attempts table.
     '''
@@ -34,11 +39,12 @@ def save_attempt(user_id,roadmap_topic_id , problem_id, attempt_number, thinking
             code_quality_score,
             complexity_score,
             overall_score,
-            evaluation
+            evaluation,
+            hints_used
         )
         VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s
         );
 
     """
@@ -67,6 +73,7 @@ def save_attempt(user_id,roadmap_topic_id , problem_id, attempt_number, thinking
         evaluation.get("overall_score"),
 
         json.dumps(evaluation),
+        hints_used,
     )
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -128,7 +135,7 @@ def complete_problem_assignment(
 
         conn.commit()
 
-def update_progress(user_id ,roadmap_topic_id ,evaluation , thinking_time_seconds):
+def update_progress(user_id ,roadmap_topic_id ,evaluation , thinking_time_seconds, hints_used: int = 0):
     '''
     Update aggregate user progress.
 
@@ -197,11 +204,19 @@ def update_progress(user_id ,roadmap_topic_id ,evaluation , thinking_time_second
 
     correct = bool(evaluation.get("correct", False))
 
-    weak_score = max(0, 100 - overall_score)
+    # Leaning on hints repeatedly is a real signal of weakness in a
+    # topic even when the final answer ends up correct - dock the
+    # score used for skill/weak-topic tracking (not the raw
+    # per-attempt overall_score, which stays an honest record of code
+    # quality) so heavy hint use keeps a topic flagged as weak.
+    hint_penalty = min(hints_used, 5) * HINT_SKILL_PENALTY
+    adjusted_score = max(0, overall_score - hint_penalty)
+
+    weak_score = max(0, 100 - adjusted_score)
     params = (
         user_id,
         roadmap_topic_id,
-        overall_score,
+        adjusted_score,
         weak_score,
         1 if correct else 0,
         thinking_time_seconds,

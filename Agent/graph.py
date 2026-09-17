@@ -15,16 +15,17 @@ from Agent.nodes import (
     hint_retry,
     update_progress_node,
 )
-from Agent.edges import route_after_evaluation
+from Agent.edges import route_after_evaluation, route_after_topic_selection
 
-def create_graph():
+
+def build_graph():
     graph = StateGraph(DSAState)
 
     graph.add_node("load_student", load_student)
     graph.add_node("evaluate_skill", evaluate_skill)
     graph.add_node("select_topic", select_topic)
     graph.add_node("teach_topic", teach_topic)
-    graph.add_node("prepare_problems" , prepare_problem_node)
+    graph.add_node("prepare_problems", prepare_problem_node)
     graph.add_node("select_problem", select_problem_node)
     graph.add_node("present_problem", present_problem)
     graph.add_node("wait_for_user", wait_for_user)
@@ -35,7 +36,16 @@ def create_graph():
     graph.add_edge(START, "load_student")
     graph.add_edge("load_student", "evaluate_skill")
     graph.add_edge("evaluate_skill", "select_topic")
-    graph.add_edge("select_topic", "teach_topic")
+
+    graph.add_conditional_edges(
+        "select_topic",
+        route_after_topic_selection,
+        {
+            "TEACH_TOPIC": "teach_topic",
+            "SELECT_PROBLEM": "prepare_problems",
+        },
+    )
+
     graph.add_edge("teach_topic", "prepare_problems")
     graph.add_edge("prepare_problems", "select_problem")
     graph.add_edge("select_problem", "present_problem")
@@ -52,8 +62,13 @@ def create_graph():
     )
 
     graph.add_edge("hint_retry", "wait_for_user")
-
     graph.add_edge("update_progress", "load_student")
 
     return graph.compile(checkpointer=InMemorySaver())
-graph=create_graph()
+
+
+def create_graph():
+    return build_graph()
+
+
+graph = build_graph()

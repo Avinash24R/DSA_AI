@@ -966,6 +966,74 @@ p {
 
 
 /* =====================================================
+   HINT / CHAT PANEL
+===================================================== */
+
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    max-height: 420px;
+    overflow-y: auto;
+
+    padding: 4px 2px;
+}
+
+.chat-message {
+    max-width: 82%;
+
+    padding: 12px 14px;
+
+    border-radius: 12px;
+
+    font-size: 13.5px;
+    line-height: 1.6;
+}
+
+.chat-message.user {
+    align-self: flex-end;
+
+    background: linear-gradient(135deg, #7a52e8, #5a34c9);
+    color: white;
+
+    border-bottom-right-radius: 4px;
+}
+
+.chat-message.assistant {
+    align-self: flex-start;
+
+    background: #0b1222;
+    border: 1px solid #202a42;
+    color: #d8dcec;
+
+    border-bottom-left-radius: 4px;
+}
+
+.chat-message.assistant .markdown-body {
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: 13.5px;
+}
+
+.chat-message small {
+    display: block;
+    margin-top: 6px;
+    opacity: .65;
+    font-size: 11px;
+}
+
+.chat-message.user small {
+    color: #e7e0ff;
+}
+
+.chat-message.assistant small {
+    color: #78839c;
+}
+
+
+/* =====================================================
    ATTEMPT HISTORY LIST (solved problems)
 ===================================================== */
 

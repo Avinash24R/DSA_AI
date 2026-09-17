@@ -16,4 +16,15 @@ def route_after_evaluation(state):
 
 
 def route_after_hint(state):
-    return "wait_for_user"
+    """Return the node to continue the agent after a hint is served."""
+    return state.get("next_action", "WAIT_FOR_USER")
+
+
+def route_after_topic_selection(state):
+    """
+    select_topic() sets next_action to TEACH_TOPIC when moving to a
+    new topic (a fresh summary should be generated) or SELECT_PROBLEM
+    when staying on the current topic for the next difficulty tier
+    (skip re-teaching, go straight to picking the next problem).
+    """
+    return state.get("next_action", "TEACH_TOPIC")

@@ -16,6 +16,14 @@ from backend.services.codeforces_service import (
     get_problem_assignment
 )
 from backend.services.leetcode_service import check_leetcode_submission
+from backend.schemas.chat import ChatRequest
+from Agent.hints import generate_hint, MAX_HINTS_PER_PROBLEM
+from Tools.chat_tools import (
+    get_hints_used,
+    increment_hints_used,
+    get_chat_history,
+    save_chat_message,
+)
 
 class SessionStartRequest(BaseModel):
     user_id: int
@@ -193,5 +201,118 @@ async def check_submission(thread_id : str):
         raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/session/{thread_id}/chat")
+async def chat(thread_id: str, payload: ChatRequest):
+    """
+    Ask the AI for a hint / general help on the currently assigned
+    problem. Each call (whether it's a free-text question or just
+    clicking "Get a hint") consumes one of the student's 5 hints for
+    THIS problem - the limit resets automatically on the next problem
+    since it's tracked per problem_assignments row.
+
+    Deliberately doesn't touch the LangGraph checkpoint: the student
+    hasn't submitted anything, so there's nothing to resume - this
+    just reads the current state read-only and talks to Postgres/the
+    LLM directly.
+    """
+    config = cast(RunnableConfig, {
+        "configurable": {
+            "thread_id": thread_id
+        }
+    })
+    try:
+        state = graph.get_state(config)
+        if not state or not state.values:
+            raise ValueError("Agent session not found")
+        current_state = state.values
+
+        problem = current_state.get("current_problem")
+        if not problem:
+            raise ValueError("No active problem")
+
+        assignment_id = current_state.get("problem_assignment_id")
+        if not assignment_id:
+            raise ValueError("No active problem assignment")
+
+        hints_used = get_hints_used(assignment_id)
+        if hints_used >= MAX_HINTS_PER_PROBLEM:
+            raise ValueError(
+                f"No hints remaining for this problem ({MAX_HINTS_PER_PROBLEM}/{MAX_HINTS_PER_PROBLEM} used)"
+            )
+
+        history = get_chat_history(assignment_id)
+        hint_number = hints_used + 1
+
+        user_message = (payload.message or "").strip()
+        save_chat_message(
+            assignment_id,
+            role="user",
+            content=user_message or "(asked for a hint)",
+            hint_number=hint_number,
+        )
+
+        reply = generate_hint(
+            problem=problem,
+            skill=current_state.get("skill_evaluation", {}),
+            chat_history=history,
+            hint_number=hint_number,
+            user_message=user_message,
+        )
+
+        save_chat_message(assignment_id, role="assistant", content=reply, hint_number=hint_number)
+        new_hints_used = increment_hints_used(assignment_id)
+
+        return {
+            "reply": reply,
+            "hint_number": hint_number,
+            "hints_used": new_hints_used,
+            "hints_remaining": max(0, MAX_HINTS_PER_PROBLEM - new_hints_used),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/session/{thread_id}/chat")
+def get_chat(thread_id: str):
+    """
+    Reload the hint/chat thread for whichever problem is currently
+    assigned - used to restore the chat panel on page refresh.
+    """
+    config = cast(RunnableConfig, {
+        "configurable": {
+            "thread_id": thread_id
+        }
+    })
+    try:
+        state = graph.get_state(config)
+        if not state or not state.values:
+            raise ValueError("Agent session not found")
+        current_state = state.values
+
+        assignment_id = current_state.get("problem_assignment_id")
+        if not assignment_id:
+            return {
+                "messages": [],
+                "hints_used": 0,
+                "hints_remaining": MAX_HINTS_PER_PROBLEM,
+            }
+
+        hints_used = get_hints_used(assignment_id)
+
+        return {
+            "messages": get_chat_history(assignment_id),
+            "hints_used": hints_used,
+            "hints_remaining": max(0, MAX_HINTS_PER_PROBLEM - hints_used),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

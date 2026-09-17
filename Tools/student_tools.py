@@ -119,6 +119,41 @@ def get_user_by_id(user_id: int) -> dict[str, Any] | None:
             cur.execute(query, (user_id,))
             row = cur.fetchone()
             return dict(row) if row else None
+def get_topic_difficulty_progress(user_id: int, topic_id: int) -> dict[str, int]:
+    """
+    Count distinct SOLVED problems per difficulty for one roadmap
+    topic. Used to gate topic progression: the agent stays on a
+    topic, working through easy then medium problems, until enough
+    of each are solved - only then does it advance to a new topic.
+    """
+    query = """
+        SELECT
+            difficulty,
+            COUNT(DISTINCT problem_id) AS solved_count
+        FROM problem_attempts
+        WHERE user_id = %s
+          AND roadmap_topic_id = %s
+          AND correct = TRUE
+        GROUP BY difficulty;
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (user_id, topic_id))
+            rows = cur.fetchall()
+
+    counts = {"easy": 0, "medium": 0, "hard": 0}
+    for row in rows:
+        if isinstance(row, dict):
+            difficulty = row.get("difficulty")
+            solved = row.get("solved_count")
+        else:
+            difficulty, solved = row[0], row[1]
+
+        difficulty = (difficulty or "").strip().lower()
+        if difficulty in counts:
+            counts[difficulty] = solved or 0
+
+    return counts
 def get_skill_profile(user_id)-> List[dict[str, Any]]:
     query = """
         SELECT

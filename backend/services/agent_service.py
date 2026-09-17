@@ -6,6 +6,7 @@ from Agent.graph import graph
 from Tools.problem_tools import get_problem
 from Tools.problem_tools import get_test_cases
 from Tools.student_tools import get_user_by_id, get_skill_profile
+from Agent.nodes import TOPIC_EASY_REQUIRED, TOPIC_MEDIUM_REQUIRED
 
 from .judge_service import run_code
 import uuid
@@ -108,6 +109,12 @@ def get_current_session(thread_id: str):
             values.get("topic_summary")
             or values.get("lesson")
         ),
+        "topic_progress": {
+            "difficulty_counts": values.get("topic_difficulty_progress") or {"easy": 0, "medium": 0, "hard": 0},
+            "target_difficulty": values.get("target_difficulty", "easy"),
+            "easy_required": TOPIC_EASY_REQUIRED,
+            "medium_required": TOPIC_MEDIUM_REQUIRED,
+        },
         "task": task,
         "next_action":values.get("next_action"),
     }

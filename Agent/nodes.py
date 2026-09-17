@@ -7,7 +7,9 @@ from Tools.student_tools import *
 from Tools.problem_tools import *
 from Tools.roadmap_tools import *
 from Tools.Eval_tools import *
+from Tools.chat_tools import get_chat_history, get_hints_used
 from backend.services.problem_service import prepare_problem_pool
+from Agent.hints import generate_hint
 import time
 
 from langchain_groq import ChatGroq
@@ -96,14 +98,40 @@ def evaluate_skill(state: DSAState) -> DSAState:
     }
 
     return state
+
+# How many easy/medium problems must be solved in a topic before the
+# agent advances to a new roadmap topic. Once both are met, the next
+# accepted submission moves on and a fresh topic summary is taught.
+TOPIC_EASY_REQUIRED = 2
+TOPIC_MEDIUM_REQUIRED = 2
+
+
+def _topic_mastered(progress: dict) -> bool:
+    return (
+        progress.get("easy", 0) >= TOPIC_EASY_REQUIRED
+        and progress.get("medium", 0) >= TOPIC_MEDIUM_REQUIRED
+    )
+
+
+def _next_topic_difficulty(progress: dict) -> str:
+    if progress.get("easy", 0) < TOPIC_EASY_REQUIRED:
+        return "easy"
+    if progress.get("medium", 0) < TOPIC_MEDIUM_REQUIRED:
+        return "medium"
+    return "hard"
+
+
 def select_topic(state: DSAState) -> DSAState:
     """
-    Select the next roadmap topic.
+    Select the roadmap topic for the next lesson/problem.
 
-    Priority:
-    1. Weakest topic
-    2. Next topic from student progress
-    3. First roadmap topic for a new student
+    - If the student is mid-way through a topic (hasn't yet solved
+      TOPIC_EASY_REQUIRED easy + TOPIC_MEDIUM_REQUIRED medium problems
+      there), stay on that same topic and just move up a difficulty
+      tier - no new topic summary is generated for this.
+    - Once that bar is cleared, advance to the next roadmap topic in
+      sequence (or the first topic, for a brand-new student) and a
+      fresh topic summary WILL be generated for it.
     """
 
     user_id = state.get("user_id")
@@ -111,30 +139,36 @@ def select_topic(state: DSAState) -> DSAState:
     if not user_id:
         raise ValueError("user_id must be provided")
 
-    evaluation = state.get("skill_evaluation", {})
+    previous_topic_id = state.get("current_topic_id")
+    topic_id = None
+    topic_changed = True
+    progress_counts = {"easy": 0, "medium": 0, "hard": 0}
 
-    weakest_topic = evaluation.get("weakest_topic")
+    if previous_topic_id:
+        progress_counts = get_topic_difficulty_progress(user_id, previous_topic_id)
 
-    # Existing student with a weak topic
-    if weakest_topic:
-        topic_id = weakest_topic["roadmap_topic_id"]
+        if not _topic_mastered(progress_counts):
+            # Not enough easy/medium solves yet in this topic - keep
+            # teaching it instead of jumping to something new.
+            topic_id = previous_topic_id
+            topic_changed = False
 
-    else:
-        # Try normal roadmap progression
+    if topic_id is None:
+        # Brand-new session, or the previous topic was just mastered
+        # (enough easy + medium solved) - move on in the roadmap.
         topic = get_next_topic(user_id)
 
-        if topic:
-            topic_id = topic["id"]
-
-        else:
-            # NEW STUDENT
-            # Get the first actual topic under the DSA root.
+        if not topic:
+            # Either a new student, or every topic has been mastered
+            # - loop back to the start of the roadmap for review.
             topic = get_first_topic()
 
-            if not topic:
-                raise ValueError("No roadmap topics available")
+        if not topic:
+            raise ValueError("No roadmap topics available")
 
-            topic_id = topic["id"]
+        topic_id = topic["id"]
+        topic_changed = True
+        progress_counts = get_topic_difficulty_progress(user_id, topic_id)
 
     topic = get_topic(topic_id)
 
@@ -148,7 +182,10 @@ def select_topic(state: DSAState) -> DSAState:
     state["current_topic_id"] = topic["id"]
     state["current_topic"] = topic["name"]
     state["available_subtopics"] = children
-    state["next_action"] = "TEACH_TOPIC"
+    state["topic_changed"] = topic_changed
+    state["topic_difficulty_progress"] = progress_counts
+    state["target_difficulty"] = _next_topic_difficulty(progress_counts)
+    state["next_action"] = "TEACH_TOPIC" if topic_changed else "SELECT_PROBLEM"
 
     return state
 def teach_topic(state:DSAState) -> DSAState:
@@ -206,8 +243,13 @@ def prepare_problem_node(state:DSAState) -> DSAState:
         raise ValueError("No topic selected")
     topic_id = topic["id"]
     topic_name = topic["name"]
-    skill = state.get("skill_evaluation") or {}
-    difficulty = skill.get("target_difficulty" , "easy")
+
+    # Difficulty is gated per-topic (see select_topic /
+    # _next_topic_difficulty) rather than derived from the student's
+    # single global average skill score, so easy problems are always
+    # served before medium ones within the same topic.
+    difficulty = state.get("target_difficulty") or "easy"
+
     count = prepare_problem_pool(
         topic_id=topic_id,
         topic_name=topic_name,
@@ -221,7 +263,12 @@ def select_problem_node(state: DSAState) -> DSAState:
     if not topic_id:
         raise ValueError("Current_topic id is required")
 
-    skill = state.get("skill_evaluation", {})
+    skill = dict(state.get("skill_evaluation", {}))
+    # Override with the topic-specific difficulty tier chosen in
+    # select_topic - select_problem() reads "target_difficulty" off
+    # this dict, so this keeps problem selection consistent with the
+    # pool prepare_problem_node just filled.
+    skill["target_difficulty"] = state.get("target_difficulty", "easy")
 
     recent_attempts = state.get("recent_attempts", [])
 
@@ -282,24 +329,46 @@ def wait_for_user(state: DSAState) -> DSAState:
         "message": message
     })
 
+    if isinstance(answer, dict):
+        payload = answer
+    else:
+        payload = {
+            "user_answer": str(answer) if answer is not None else "",
+            "judge_result": {"accepted": True, "status": "accepted"},
+        }
+
     start_time = state.get("thinking_start_time")
 
     if start_time is not None:
         state["thinking_time_seconds"] = int(
             time.time() - start_time
         )
-    state["user_answer"] = answer.get("user_answer", "")
-    state["judge_result"] = answer.get("judge_result" , {})
+    state["user_answer"] = payload.get("user_answer", "")
+    state["last_user_message"] = state["user_answer"]
+    state["judge_result"] = payload.get("judge_result", {"accepted": True, "status": "accepted"})
     state["next_action"] = "EVALUATE"
     return state
 def evaluate_answer(state: DSAState) -> DSAState:
 
+    problem = state.get("current_problem") or {}
+
     evaluation = evaluate_submission(
-        problem=state.get("current_problem"),
+        problem=problem,
         answer=state.get("user_answer"),
         judge_result=state.get("judge_result"),
         thinking_time=state.get("thinking_time_seconds", 0),
     )
+
+    # The LLM is asked to echo these back, but the database is the
+    # ground truth and difficulty now directly gates topic
+    # progression (see select_topic) - don't let a misreported value
+    # throw that off.
+    if problem.get("difficulty"):
+        evaluation["difficulty"] = problem["difficulty"]
+    if problem.get("source"):
+        evaluation["problem_source"] = problem["source"]
+    if problem.get("title"):
+        evaluation["problem_title"] = problem["title"]
 
     state["evaluation"] = evaluation # type: ignore
 
@@ -323,21 +392,40 @@ def evaluate_answer(state: DSAState) -> DSAState:
 
 def hint_retry(state: DSAState) -> DSAState:
     '''
-    later 
-    wrong answer
-    ↓
-analyze mistake
-    ↓
-generate appropriate hint
-    ↓
-WAIT_FOR_USER
+    Wrong solution or failed submission path.
+    Generate a hint grounded in the active problem and then resume
+    waiting for the student's next attempt.
     '''
-    state["hint_level"] = state.get("hint_level", 0) + 1
+    hint_level = int(state.get("hint_level", 0) or 0) + 1
+    state["hint_level"] = hint_level
+    state["hint_requested"] = True
 
+    problem = state.get("current_problem") or {}
+    history = state.get("chat_history") or []
+    assignment_id = state.get("problem_assignment_id")
+    if assignment_id:
+        history = get_chat_history(assignment_id) or history
+
+    user_message = state.get("last_user_message") or state.get("user_answer") or ""
+    hint_text = generate_hint(
+        problem=problem,
+        skill=state.get("skill_evaluation", {}),
+        chat_history=history,
+        hint_number=hint_level,
+        user_message=user_message,
+    )
+    state["last_hint"] = hint_text
+    state["chat_history"] = history + [{
+        "role": "assistant",
+        "content": hint_text,
+        "hint_number": hint_level,
+    }]
     state["next_action"] = "WAIT_FOR_USER"
 
     return state
 def update_progress_node(state: DSAState) -> DSAState:
+
+    hints_used = get_hints_used(state.get("problem_assignment_id")) if state.get("problem_assignment_id") else 0
 
     save_attempt(
         user_id=state.get("user_id"),
@@ -348,13 +436,15 @@ def update_progress_node(state: DSAState) -> DSAState:
             "thinking_time_seconds", 0
         ),
         evaluation=state.get("evaluation"),
+        hints_used=hints_used,
     )
 
     update_progress(
         user_id=state.get("user_id"),
         roadmap_topic_id=state.get("current_topic_id"),
         evaluation=state.get("evaluation"),
-        thinking_time_seconds=state.get("thinking_time_seconds")
+        thinking_time_seconds=state.get("thinking_time_seconds"),
+        hints_used=hints_used,
     )
 
     state["next_action"] = "END"
