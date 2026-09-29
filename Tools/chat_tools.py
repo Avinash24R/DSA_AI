@@ -52,7 +52,7 @@ def increment_hints_used(assignment_id: int | None) -> int:
 
     if not row:
         return 0
-    return row["hints_used"] if isinstance(row, dict) else row[0]
+    return row["hints_used"] if isinstance(row, dict) else row[0] # type: ignore
 
 
 def get_chat_history(assignment_id: int | None) -> list[dict]:

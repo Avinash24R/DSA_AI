@@ -220,5 +220,29 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+
+
+ALTER TABLE problem_assignments
+    ADD COLUMN IF NOT EXISTS hints_used INT NOT NULL DEFAULT 0;
+
+ALTER TABLE problem_attempts
+    ADD COLUMN IF NOT EXISTS hints_used INT NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGSERIAL PRIMARY KEY,
+
+    problem_assignment_id BIGINT NOT NULL
+        REFERENCES problem_assignments(id)
+        ON DELETE CASCADE,
+
+    role VARCHAR(20) NOT NULL, -- 'user' or 'assistant'
+
+    content TEXT NOT NULL,
+
+    hint_number INT,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_chat_messages_assignment
 ON chat_messages(problem_assignment_id, created_at);

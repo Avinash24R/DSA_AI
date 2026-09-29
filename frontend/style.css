@@ -1032,6 +1032,25 @@ p {
     color: #78839c;
 }
 
+.chat-message.error {
+    align-self: stretch;
+    max-width: 100%;
+
+    background: rgba(255, 90, 90, .1);
+    border: 1px solid rgba(255, 90, 90, .3);
+    color: #ffb3b3;
+}
+
+.chat-message.error strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #ff8b8b;
+}
+
+.chat-message.error small {
+    color: #d99;
+}
+
 
 /* =====================================================
    ATTEMPT HISTORY LIST (solved problems)

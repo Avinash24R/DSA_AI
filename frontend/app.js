@@ -709,10 +709,23 @@ async function sendChatMessage(message) {
     updateHintsUI(data.hints_used, data.hints_remaining);
   } catch (error) {
     console.error("CHAT SEND ERROR:", error);
+
+    // Show the failure inline, in the thread itself - a toast alone
+    // is too easy to miss, and reloading from the server here would
+    // silently wipe the message the student just typed if it never
+    // actually got saved (which is exactly what happens when the
+    // request fails before reaching the database).
+    if (container) {
+      const bubble = document.createElement("div");
+      bubble.className = "chat-message error";
+      bubble.innerHTML = `<strong>Couldn't get a hint.</strong> ${escapeHtml(
+        error.message || "Something went wrong talking to the AI.",
+      )}<small>You can try again — this didn't use up one of your hints.</small>`;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
     showToast(error.message || "Could not get a hint right now.");
-    // Reload from the server so the optimistic bubble doesn't drift
-    // out of sync with what was actually saved.
-    await loadChatPanel();
   } finally {
     const remaining = document.getElementById("hintsRemaining");
     const exhausted = remaining && Number(remaining.textContent) <= 0;
