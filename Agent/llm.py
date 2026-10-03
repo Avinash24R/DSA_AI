@@ -8,12 +8,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
-def get_llm() -> ChatGroq:
-    groq_api_key = os.getenv("GROQ_API")
+def get_llm(api_key: str | None = None) -> ChatGroq:
+
+    groq_api_key = (api_key or "").strip() or os.getenv("GROQ_API")
 
     if not groq_api_key:
         raise RuntimeError(
-            "GROQ_API is missing from environment"
+            "No Groq API key available: set one in your profile, or "
+            "configure GROQ_API in the environment"
         )
 
     return ChatGroq(

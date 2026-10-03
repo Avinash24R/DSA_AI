@@ -94,7 +94,7 @@ def find_problems(topic_id: int, topic_name: str, difficulty: str | None, limit:
             return [dict(row) for row in cur.fetchall()]
 
 
-def select_problem(topic_id:int, topic_name:str, skill:dict[str, Any], recent_attempts:list[dict[str, Any]], limit=20):
+def select_problem(topic_id:int, topic_name:str, skill:dict[str, Any], recent_attempts:list[dict[str, Any]], limit=20, api_key: str | None = None):
     '''
     1. get candidate problems
     2.remove recept attempted problems.
@@ -169,7 +169,7 @@ def select_problem(topic_id:int, topic_name:str, skill:dict[str, Any], recent_at
     Numeric fields must be numbers, not strings.
     Do not return Python syntax
     """
-    llm = get_llm()
+    llm = get_llm(api_key)
 
     structured_llm = llm.with_structured_output(
         ProblemSelection,

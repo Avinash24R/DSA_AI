@@ -10,6 +10,18 @@ get_skill_profile(user_id)
 from scripts.setup import get_connection
 from typing import List , Any 
 from psycopg.rows import TupleRow
+
+
+def _read_row_value(row: object | None, field_name: str, index: int = 0) -> object | None:
+    if row is None:
+        return None
+    if isinstance(row, dict):
+        return row.get(field_name)
+    if isinstance(row, (list, tuple)) and index < len(row):
+        return row[index]
+    return None
+
+
 def get_user_progress(user_id : int , topic_id : int | None)-> list[TupleRow] | List[dict[str, Any]]:
     query = """
         SELECT 
@@ -102,6 +114,25 @@ def get_recent_attempts(user_id: int , limit = 10) -> List[dict[str, Any]]:
         with conn.cursor() as cur:
             cur.execute(query, params)
             return [dict(row) for row in cur.fetchall()]
+def get_user_api_key(user_id: int) -> str | None:
+    """
+    The student's own Groq API key, if they've set one in their
+    profile. Deliberately a separate, narrow query rather than a field
+    on get_user_by_id - that function's result shape is reused in
+
+        be returned through those paths.
+    """
+    query = "SELECT groq_api_key FROM users WHERE id = %s;"
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (user_id,))
+            row = cur.fetchone()
+    if row is None:
+        return None
+    key = _read_row_value(row, "groq_api_key")
+    return str(key) if key is not None and str(key).strip() else None
+
+
 def get_user_by_id(user_id: int) -> dict[str, Any] | None:
     query = """
         SELECT

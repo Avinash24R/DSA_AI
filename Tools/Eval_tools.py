@@ -226,7 +226,7 @@ def update_progress(user_id ,roadmap_topic_id ,evaluation , thinking_time_second
             cur.execute(query, params)
 
         conn.commit()
-def evaluate_submission(problem , answer , judge_result,  thinking_time):
+def evaluate_submission(problem , answer , judge_result,  thinking_time, api_key: str | None = None):
     '''
     judge_result -> whatever come from the  api of codefroce and leetcode.
     accepted / wrong answer / TLE / runtime error / compilation error
@@ -246,7 +246,7 @@ def evaluate_submission(problem , answer , judge_result,  thinking_time):
 }
     '''
 
-    llm = get_llm()
+    llm = get_llm(api_key)
     structured_llm = llm.with_structured_output(
         SubmissionEvaluation,
         method="json_schema",

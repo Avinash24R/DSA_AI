@@ -261,6 +261,7 @@ async def chat(thread_id: str, payload: ChatRequest):
             chat_history=history,
             hint_number=hint_number,
             user_message=user_message,
+            api_key=current_state.get("groq_api_key"),
         )
 
         save_chat_message(assignment_id, role="assistant", content=reply, hint_number=hint_number)

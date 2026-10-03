@@ -13,7 +13,6 @@
   <div class="brand"><div class="brand-icon"><i class="bi bi-cpu"></i></div><span>DSA <strong>AI Tutor</strong></span></div>
   <nav class="nav"><a class="nav-item " href="home.html"><i class="bi bi-house"></i><span>Home</span></a>
 <a class="nav-item " href="problem.html"><i class="bi bi-code-square"></i><span>Problem</span></a>
-<a class="nav-item " href="progress.html"><i class="bi bi-graph-up"></i><span>Progress</span></a>
 <a class="nav-item active" href="user.html"><i class="bi bi-person"></i><span>Profile</span></a></nav>
   <div class="sidebar-footer"><a class="reset-link" href="#" data-reset-session><i class="bi bi-arrow-counterclockwise"></i> Reset local session</a></div>
 </aside>
@@ -27,20 +26,34 @@
   <section class="card hero">
     <div><div class="eyebrow">Student profile</div><h1 id="profileName">Student</h1><p id="profileEmail">—</p><div class="action-row"><span id="profileLevel" class="badge">Beginner</span><span class="meta">Codeforces: <b id="profileCodeforces">—</b></span><span class="meta">LeetCode: <b id="profileLeetcode">—</b></span></div></div><div class="avatar" style="width:86px;height:86px;font-size:32px" id="profileAvatar">S</div></section>
 
-  <section class="grid grid-3 section-gap">
-    <div class="card"><span class="stat-label">Skill score</span><div id="profileSkillScore" class="stat-value">0</div><span class="stat-note">average across attempted topics</span></div>
-    <div class="card"><span class="stat-label">Problems solved</span><div id="profileSolved" class="stat-value">0</div><span class="stat-note" id="profileAccuracyNote">0% accuracy</span></div>
+  <section class="grid grid-4 section-gap">
+    <div class="card"><span class="stat-label">Skill score</span><div id="profileSkillScore" class="stat-value">0</div><span class="stat-note" id="profileAccuracyNote">0% accuracy</span></div>
+    <div class="card"><span class="stat-label">Problems solved</span><div id="profileSolved" class="stat-value">0</div></div>
+    <div class="card"><span class="stat-label">Attempts</span><div id="profileAttempts" class="stat-value">0</div></div>
     <div class="card"><span class="stat-label">Current topic</span><div id="profileCurrentTopic" class="stat-value" style="font-size:20px">—</div></div>
   </section>
 
   <section class="card section-gap">
-    <div class="card-header"><div><div class="eyebrow">Learning path</div><h2>Roadmap</h2><p>Every topic in your roadmap and how far you've progressed on it.</p></div><div class="icon-box"><i class="bi bi-signpost-split"></i></div></div>
+    <div class="card-header"><div><div class="eyebrow">Learning path</div><h2>Roadmap &amp; progress</h2><p>Every topic in your roadmap and how far you've progressed on it.</p></div><div class="icon-box"><i class="bi bi-signpost-split"></i></div></div>
     <div id="profileRoadmapList"><div class="loading">Loading your roadmap…</div></div>
   </section>
 
   <section class="card section-gap">
     <div class="card-header"><div><div class="eyebrow">Persistent knowledge</div><h2>Saved topic notes</h2><p>These are the AI-generated notes saved for future recall.</p></div><div class="icon-box"><i class="bi bi-bookmark-star"></i></div></div>
     <div id="savedSummaries"><div class="loading">Loading saved notes…</div></div>
+  </section>
+
+  <section class="card section-gap">
+    <div class="card-header"><div><div class="eyebrow">AI settings</div><h2>Your Groq API key</h2><p>Optional — use your own Groq key for lessons, problem selection, grading and hints instead of the app's shared key. Leave blank to keep using the shared key.</p></div><div class="icon-box"><i class="bi bi-key"></i></div></div>
+    <div class="form-group">
+      <label for="apiKeyInput">Groq API key</label>
+      <input id="apiKeyInput" class="input" type="password" placeholder="gsk_..." autocomplete="off">
+    </div>
+    <div class="action-row">
+      <button id="saveApiKeyBtn" class="btn btn-primary" type="button"><i class="bi bi-check2"></i> Save key</button>
+      <button id="clearApiKeyBtn" class="btn btn-outline" type="button"><i class="bi bi-x-lg"></i> Clear / use shared key</button>
+      <span id="apiKeyStatus" class="note">Checking…</span>
+    </div>
   </section>
 </div>
 </main>

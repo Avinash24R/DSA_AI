@@ -44,6 +44,11 @@ def load_student(state: DSAState) -> DSAState:
     state["weak_topics"] = weak_topics
     state["recent_attempts"] = recent_attempts # type: ignore
     state["skill_profile"] = skill_profile # type: ignore
+    # Loaded once per cycle so every LLM call below (teach_topic,
+    # select_problem, evaluate_submission, generate_hint) uses this
+    # student's own Groq key when they've set one, falling back to
+    # the shared GROQ_API env var otherwise.
+    state["groq_api_key"] = get_user_api_key(user_id)
 
     return state
 def evaluate_skill(state: DSAState) -> DSAState:
@@ -228,7 +233,7 @@ Formatting rules (important):
 - Put C++ code inside a fenced code block starting with ```cpp
   and ending with ```, with a blank line before and after the fence.
 """
-    llm = get_llm()
+    llm = get_llm(state.get("groq_api_key"))
     response = llm.invoke(prompt)
     state["lesson"] = response.content
     state["next_action"] = "SELECT_PROBLEM"
@@ -276,7 +281,8 @@ def select_problem_node(state: DSAState) -> DSAState:
         topic_id=topic_id,
         topic_name = state.get("current_topic", "hashmap"),
         skill=skill,
-        recent_attempts=recent_attempts
+        recent_attempts=recent_attempts,
+        api_key=state.get("groq_api_key"),
     )
 
     if not problem_id:
@@ -357,6 +363,7 @@ def evaluate_answer(state: DSAState) -> DSAState:
         answer=state.get("user_answer"),
         judge_result=state.get("judge_result"),
         thinking_time=state.get("thinking_time_seconds", 0),
+        api_key=state.get("groq_api_key"),
     )
 
     # The LLM is asked to echo these back, but the database is the
@@ -413,6 +420,7 @@ def hint_retry(state: DSAState) -> DSAState:
         chat_history=history,
         hint_number=hint_level,
         user_message=user_message,
+        api_key=state.get("groq_api_key"),
     )
     state["last_hint"] = hint_text
     state["chat_history"] = history + [{

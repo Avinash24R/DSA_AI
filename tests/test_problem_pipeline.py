@@ -95,11 +95,12 @@ def test_codeforces_api():
 def test_codeforces_ingestion():
 
     inserted = ingest_codeforces(
+        topic_id=1,
+        difficulty="easy",
         limit=5
     )
 
     assert inserted == 5
-
 
 def test_problems_were_saved():
 

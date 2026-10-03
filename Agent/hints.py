@@ -79,6 +79,7 @@ def generate_hint(
     chat_history: list[dict],
     hint_number: int,
     user_message: str | None,
+    api_key: str | None = None,
 ) -> str:
     """
     Returns the assistant's reply text for one hint/chat turn.
@@ -129,6 +130,6 @@ Universal rules, no matter the hint number:
 - Respond in plain text/Markdown, not JSON.
 """
 
-    llm = get_llm()
+    llm = get_llm(api_key)
     response = llm.invoke(prompt)
     return response.content # type: ignore

@@ -10,6 +10,16 @@ save_chat_message(...)
 from scripts.setup import get_connection
 
 
+def _read_row_value(row: object | None, field_name: str, index: int = 0) -> object | None:
+    if row is None:
+        return None
+    if isinstance(row, dict):
+        return row.get(field_name)
+    if isinstance(row, (list, tuple)) and index < len(row):
+        return row[index]
+    return None
+
+
 def get_hints_used(assignment_id: int | None) -> int:
     if assignment_id is None:
         return 0
@@ -26,7 +36,8 @@ def get_hints_used(assignment_id: int | None) -> int:
 
     if not row:
         return 0
-    return row["hints_used"] if isinstance(row, dict) else row[0]
+    value = _read_row_value(row, "hints_used")
+    return int(value) if value is not None else 0 # type: ignore
 
 
 def increment_hints_used(assignment_id: int | None) -> int:
@@ -52,7 +63,8 @@ def increment_hints_used(assignment_id: int | None) -> int:
 
     if not row:
         return 0
-    return row["hints_used"] if isinstance(row, dict) else row[0] # type: ignore
+    value = _read_row_value(row, "hints_used")
+    return int(value) if value is not None else 0 # type: ignore
 
 
 def get_chat_history(assignment_id: int | None) -> list[dict]:

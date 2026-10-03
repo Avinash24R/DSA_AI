@@ -43,10 +43,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadSession();
 
-  if (document.getElementById("progressList")) {
-    await loadProgressPage();
-  }
-
   if (document.getElementById("profileRoadmapList")) {
     await loadProfilePage();
   }
@@ -67,6 +63,16 @@ function bindEvents() {
       event.preventDefault();
       createUserAndSession();
     });
+  }
+
+  const saveApiKeyBtn = document.getElementById("saveApiKeyBtn");
+  if (saveApiKeyBtn) {
+    saveApiKeyBtn.addEventListener("click", () => saveApiKey());
+  }
+
+  const clearApiKeyBtn = document.getElementById("clearApiKeyBtn");
+  if (clearApiKeyBtn) {
+    clearApiKeyBtn.addEventListener("click", () => clearApiKey());
   }
 
   document.querySelectorAll("[data-reset-session]").forEach((el) => {
@@ -159,6 +165,9 @@ async function createUserAndSession() {
   const leetcodeHandle = document
     .getElementById("onboardingLeetcode")
     ?.value.trim();
+  const groqApiKey = document
+    .getElementById("onboardingApiKey")
+    ?.value.trim();
 
   if (!name) {
     showToast("Please enter your name.");
@@ -192,6 +201,7 @@ async function createUserAndSession() {
         level,
         codeforces_handle: codeforcesHandle,
         leetcode_handle: leetcodeHandle || null,
+        groq_api_key: groqApiKey || null,
       }),
     });
 
@@ -734,28 +744,6 @@ async function sendChatMessage(message) {
 }
 
 
-async function loadProgressPage() {
-  const userId = localStorage.getItem("dsa_user_id");
-  if (!userId) return;
-
-  try {
-    const data = await loadDashboard(userId);
-    const agg = computeSkillAggregate(data.skill_profile);
-
-    setText("skillScore", agg.score);
-    setText("solved", agg.solved);
-    setText("attempts", agg.attempts);
-    setText("metricAccuracy", `${agg.accuracy}%`);
-
-    renderTopicProgressList("progressList", data.skill_profile);
-  } catch (error) {
-    console.error("PROGRESS ERROR:", error);
-    showToast(error.message);
-  }
-
-  await loadSavedSummaries("progressSummaries");
-}
-
 function computeSkillAggregate(skillProfile) {
   const topics = Array.isArray(skillProfile) ? skillProfile : [];
 
@@ -828,6 +816,15 @@ async function loadProfilePage() {
 
   try {
     const data = await loadDashboard(userId);
+    const agg = computeSkillAggregate(data.skill_profile);
+
+    // Profile-header stats (name/email/etc.) are already filled in by
+    // renderSession(); these are the former progress.html metrics,
+    // merged in here instead of a standalone Progress page.
+    setText("profileSolved", agg.solved);
+    setText("profileAttempts", agg.attempts);
+    setText("profileAccuracyNote", `${agg.accuracy}% accuracy`);
+
     renderTopicProgressList("profileRoadmapList", data.skill_profile);
   } catch (error) {
     console.error("PROFILE ROADMAP ERROR:", error);
@@ -838,6 +835,73 @@ async function loadProfilePage() {
   }
 
   await loadSavedSummaries("savedSummaries");
+  await loadApiKeyStatus();
+}
+
+/* =========================================================
+   PER-USER GROQ API KEY (Profile page)
+========================================================= */
+
+async function loadApiKeyStatus() {
+  const userId = localStorage.getItem("dsa_user_id");
+  const statusEl = document.getElementById("apiKeyStatus");
+  if (!userId || !statusEl) return;
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/users/${encodeURIComponent(userId)}/api-key`,
+    );
+    const data = await readResponse(response);
+    statusEl.textContent = data.has_api_key
+      ? "Using your own Groq key."
+      : "Using the app's shared key.";
+  } catch (error) {
+    console.error("API KEY STATUS ERROR:", error);
+    statusEl.textContent = "Could not check key status.";
+  }
+}
+
+async function saveApiKey() {
+  const userId = localStorage.getItem("dsa_user_id");
+  const input = document.getElementById("apiKeyInput");
+  if (!userId || !input) return;
+
+  const key = input.value.trim();
+  if (!key) {
+    showToast("Enter a key, or use Clear to remove a saved one.");
+    return;
+  }
+
+  await updateApiKey(key, "Groq key saved.");
+}
+
+async function clearApiKey() {
+  const userId = localStorage.getItem("dsa_user_id");
+  if (!userId) return;
+  await updateApiKey(null, "Groq key cleared — using the shared key again.");
+}
+
+async function updateApiKey(groqApiKey, successMessage) {
+  const userId = localStorage.getItem("dsa_user_id");
+  const input = document.getElementById("apiKeyInput");
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/users/${encodeURIComponent(userId)}/api-key`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groq_api_key: groqApiKey }),
+      },
+    );
+    await readResponse(response);
+    if (input) input.value = "";
+    showToast(successMessage);
+    await loadApiKeyStatus();
+  } catch (error) {
+    console.error("API KEY UPDATE ERROR:", error);
+    showToast(error.message);
+  }
 }
 
 async function loadDashboard(userId) {

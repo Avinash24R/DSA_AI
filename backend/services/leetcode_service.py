@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 LEETCODE_GRAPHQL = "https://leetcode.com/graphql"
 
 # recentAcSubmissionList is the same public endpoint LeetCode's own
-# profile page uses to show "Recent AC" — it only returns Accepted
+# profile page uses to show "Recent AC" it only returns Accepted
 # submissions and works for any username without authentication
 # (unless the user has made their submissions private).
 RECENT_AC_QUERY = """

@@ -18,6 +18,7 @@ from pydantic import BaseModel , Field
 class DSAState(TypedDict, total=False):
     # Student
     user_id: int
+    groq_api_key: str | None  # the student's own Groq key, if set; falls back to the shared GROQ_API env var when absent
 
     progress: list[dict[str, Any]]
     weak_topics: list[dict[str, Any]]
