@@ -16,9 +16,6 @@ echo
 
 status=0
 
-# ---------------------------------------------------------------
-# 1. Check Python 3
-# ---------------------------------------------------------------
 if command -v python3 >/dev/null 2>&1; then
     PYTHON_CMD="python3"
     echo "[OK] Python found: $(python3 --version)"
@@ -29,9 +26,6 @@ else
     status=1
 fi
 
-# ---------------------------------------------------------------
-# 2. Check tkinter
-# ---------------------------------------------------------------
 if [ "${PYTHON_CMD:-}" != "" ] && $PYTHON_CMD -c "import tkinter" >/dev/null 2>&1; then
     echo "[OK] tkinter available"
 elif [ "${PYTHON_CMD:-}" != "" ]; then
@@ -41,9 +35,7 @@ elif [ "${PYTHON_CMD:-}" != "" ]; then
     status=1
 fi
 
-# ---------------------------------------------------------------
-# 3. Check Docker
-# ---------------------------------------------------------------
+
 if command -v docker >/dev/null 2>&1; then
     echo "[OK] Docker found"
     if docker info >/dev/null 2>&1; then
@@ -64,10 +56,6 @@ if [ $status -ne 0 ]; then
     exit 1
 fi
 
-# ---------------------------------------------------------------
-# 4. Create .env if missing
-# ---------------------------------------------------------------
-if [ ! -f "$PROJECT_ROOT/.env" ]; then
     if [ -f "$PROJECT_ROOT/dot.env" ]; then
         cp "$PROJECT_ROOT/dot.env" "$PROJECT_ROOT/.env"
         echo "[OK] Created .env from template - edit it and add your GROQ_API key."
@@ -76,9 +64,7 @@ else
     echo "[OK] .env already exists"
 fi
 
-# ---------------------------------------------------------------
-# 5. Create a double-clickable launcher on the Desktop
-# ---------------------------------------------------------------
+
 DESKTOP="$HOME/Desktop"
 LAUNCHER_CMD="$DESKTOP/DSA AI Tutor.command"
 
